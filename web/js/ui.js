@@ -190,8 +190,7 @@ export function openDrawer({ onClose } = {}) {
   const overlay = h('div', { class: 'drawer-overlay', onMousedown: close });
   const panel = h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true' },
     h('div', { class: 'drawer-head' },
-      head,
-      h('span', { class: 'spacer' }),
+      head, // .drawer-title 自己是 flex: 1，不要再加 spacer，否则会和标题平分宽度
       h('button', { type: 'button', class: 'btn ghost icon-only', 'aria-label': '关闭', onClick: close }, icon('x'))),
     body);
   document.body.append(overlay, panel);
@@ -288,17 +287,17 @@ export function debounce(fn, ms = 600) {
 /** 返回一个 repaint()：用户正在 root 里输入时先记下，等焦点离开 root 再调用 draw() */
 export function repaintWhenIdle(root, draw) {
   let dirty = false;
-  root.addEventListener('focusout', () => {
-    setTimeout(() => {
-      if (dirty && !root.contains(document.activeElement)) {
-        dirty = false;
-        draw();
-      }
-    }, 0);
-  });
+  const flush = () => {
+    if (dirty && !root.contains(document.activeElement)) {
+      dirty = false;
+      draw();
+    }
+  };
+  root.addEventListener('focusout', () => setTimeout(flush, 0));
+  // 通知可能是在 change 事件里同步发出的，那时焦点还没移到下一个输入框，所以等这一轮事件结束再判断
   return () => {
-    if (root.contains(document.activeElement)) dirty = true;
-    else draw();
+    dirty = true;
+    setTimeout(flush, 0);
   };
 }
 

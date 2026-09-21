@@ -3174,8 +3174,7 @@ export function openDrawer({ onClose } = {}) {
   const overlay = h('div', { class: 'drawer-overlay', onMousedown: close });
   const panel = h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true' },
     h('div', { class: 'drawer-head' },
-      head,
-      h('span', { class: 'spacer' }),
+      head, // .drawer-title 自己是 flex: 1，不要再加 spacer，否则会和标题平分宽度
       h('button', { type: 'button', class: 'btn ghost icon-only', 'aria-label': '关闭', onClick: close }, icon('x'))),
     body);
   document.body.append(overlay, panel);
@@ -3272,17 +3271,17 @@ export function debounce(fn, ms = 600) {
 /** 返回一个 repaint()：用户正在 root 里输入时先记下，等焦点离开 root 再调用 draw() */
 export function repaintWhenIdle(root, draw) {
   let dirty = false;
-  root.addEventListener('focusout', () => {
-    setTimeout(() => {
-      if (dirty && !root.contains(document.activeElement)) {
-        dirty = false;
-        draw();
-      }
-    }, 0);
-  });
+  const flush = () => {
+    if (dirty && !root.contains(document.activeElement)) {
+      dirty = false;
+      draw();
+    }
+  };
+  root.addEventListener('focusout', () => setTimeout(flush, 0));
+  // 通知可能是在 change 事件里同步发出的，那时焦点还没移到下一个输入框，所以等这一轮事件结束再判断
   return () => {
-    if (root.contains(document.activeElement)) dirty = true;
-    else draw();
+    dirty = true;
+    setTimeout(flush, 0);
   };
 }
 
@@ -3654,7 +3653,7 @@ function cardFoot(app, now) {
   if (isClosed(app)) return h('span', { class: 'card-meta' }, `${STATUS_LABEL[app.status]}在：${STAGE_LABEL[app.stage]}`);
   const ev = nextEvent(app, now);
   if (ev) {
-    return h('span', { class: 'card-meta event' }, icon('clock'), `${ev.type} · ${dualTime(ev.at, ev.tz, settings).primary}`);
+    return h('span', { class: 'card-meta upcoming' }, icon('clock'), `${ev.type} · ${dualTime(ev.at, ev.tz, settings).primary}`);
   }
   if (app.stage === 'wishlist' && app.deadline) {
     const d = daysUntil(app.deadline, settings.targetTz, now);
@@ -3856,7 +3855,7 @@ function renderList(apps, prefs, redraw) {
 .card-tags:empty { display: none; }
 .card-meta { display: flex; align-items: center; gap: 5px; color: var(--text-3); font-size: 12px; }
 .card-meta .icon { width: 13px; height: 13px; }
-.card-meta.event { color: var(--st-interview); }
+.card-meta.upcoming { color: var(--st-interview); }
 .card-meta.urgent { color: var(--danger); }
 .card-meta.stale { color: var(--warn); }
 
@@ -3997,7 +3996,7 @@ export function openEventForm({ app, event, onSave }) {
 import { store } from '../store.js';
 import {
   h, icon, openDrawer, field, input, textarea, select, stars, attempt, toast,
-  confirmDialog, copyText, safeUrl, timeAgo, ensureCss,
+  confirmDialog, copyText, safeUrl, timeAgo, ensureCss, repaintWhenIdle,
 } from '../ui.js';
 import {
   STAGES, STAGE_LABEL, STATUS_LABEL, COMPANY_TYPES, TRACKS, BATCHES, CHANNELS,
@@ -4028,7 +4027,6 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
   current?.close();
 
   let currentTab = tab;
-  let dirty = false; // 有外部更新，但用户正在输入，等失焦再重画
   let unsubscribe = () => {};
   const drawer = openDrawer({
     onClose: () => {
@@ -4099,7 +4097,6 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
       class: key === currentTab ? 'on' : '',
       onClick: () => {
         currentTab = key;
-        dirty = false;
         renderTabs();
         renderPane();
       },
@@ -4263,7 +4260,6 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
       const entry = { id: newId('tl'), at: new Date().toISOString(), type: 'note', from: '', to: '', text };
       const rec = await save({ timeline: [...(get().timeline || []), entry] });
       if (rec) {
-        dirty = false;
         renderPane();
         pane.querySelector('input')?.focus();
       }
@@ -4284,14 +4280,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
   renderTabs();
   renderPane();
 
-  pane.addEventListener('focusout', () => {
-    setTimeout(() => {
-      if (dirty && !pane.contains(document.activeElement)) {
-        dirty = false;
-        renderPane();
-      }
-    }, 0);
-  });
+  const repaintPane = repaintWhenIdle(pane, renderPane);
 
   unsubscribe = store.subscribe((topic) => {
     if (!['applications', 'load', 'settings', 'resumes'].includes(topic)) return;
@@ -4303,9 +4292,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
     renderTabs();
     // 基本信息页的输入框自己就是最新值，只有外部改动（load）时才重画；JD 页永远不自动重画
     const shouldRepaint = currentTab === 'events' || currentTab === 'timeline' || (currentTab === 'info' && topic !== 'applications');
-    if (!shouldRepaint) return;
-    if (pane.contains(document.activeElement)) dirty = true;
-    else renderPane();
+    if (shouldRepaint) repaintPane();
   });
 
   return drawer;

@@ -157,7 +157,7 @@ function cardFoot(app, now) {
   if (isClosed(app)) return h('span', { class: 'card-meta' }, `${STATUS_LABEL[app.status]}在：${STAGE_LABEL[app.stage]}`);
   const ev = nextEvent(app, now);
   if (ev) {
-    return h('span', { class: 'card-meta event' }, icon('clock'), `${ev.type} · ${dualTime(ev.at, ev.tz, settings).primary}`);
+    return h('span', { class: 'card-meta upcoming' }, icon('clock'), `${ev.type} · ${dualTime(ev.at, ev.tz, settings).primary}`);
   }
   if (app.stage === 'wishlist' && app.deadline) {
     const d = daysUntil(app.deadline, settings.targetTz, now);

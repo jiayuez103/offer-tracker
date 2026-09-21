@@ -58,7 +58,7 @@
 .card-tags:empty { display: none; }
 .card-meta { display: flex; align-items: center; gap: 5px; color: var(--text-3); font-size: 12px; }
 .card-meta .icon { width: 13px; height: 13px; }
-.card-meta.event { color: var(--st-interview); }
+.card-meta.upcoming { color: var(--st-interview); }
 .card-meta.urgent { color: var(--danger); }
 .card-meta.stale { color: var(--warn); }
 

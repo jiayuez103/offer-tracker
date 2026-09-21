@@ -1,0 +1,66 @@
+/* ---------- 投递详情抽屉 ---------- */
+.drawer-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.dh-title { display: flex; align-items: center; gap: 10px; }
+.dh-title h2 { font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dh-sub { color: var(--text-2); }
+.dh-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.stage-select { width: auto; height: 26px; padding: 0 8px; font-size: 12px; }
+.tab-count {
+  margin-left: 5px; padding: 0 6px;
+  border-radius: 8px;
+  background: var(--surface-3); color: var(--text-2);
+  font-size: 11px;
+}
+.url-field { display: flex; gap: 6px; }
+
+/* ---------- 日程与复盘 ---------- */
+.events { display: flex; flex-direction: column; gap: 10px; }
+.event {
+  padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface);
+}
+.event.overdue { border-left: 3px solid var(--warn); }
+.event.done .event-title, .event.done .event-time { color: var(--text-3); }
+.event-main { display: flex; align-items: flex-start; gap: 10px; }
+.event-main input[type="checkbox"] { width: 16px; height: 16px; margin-top: 3px; accent-color: var(--accent); cursor: pointer; }
+.event-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.event-title { display: flex; align-items: center; gap: 6px; font-weight: 550; }
+.event-time { font-size: 13px; }
+.event-loc { font-size: 13px; overflow-wrap: anywhere; }
+.event-loc a { display: inline-flex; align-items: center; gap: 4px; }
+.event-loc .icon { width: 13px; height: 13px; }
+.event-actions { display: flex; gap: 2px; }
+.review { display: grid; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.review-head { display: flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 12px; font-weight: 600; }
+.review-head .icon { width: 14px; height: 14px; }
+.tz-preview { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); }
+
+/* ---------- JD ---------- */
+.jd-pane { display: flex; flex-direction: column; gap: 10px; }
+.jd-text { min-height: 380px; font-size: 13px; }
+
+/* ---------- 时间线 ---------- */
+.timeline-pane { display: flex; flex-direction: column; gap: 16px; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 4px; }
+.timeline li { position: relative; display: flex; gap: 12px; padding-bottom: 16px; }
+.timeline li::before { content: ""; position: absolute; left: 4px; top: 16px; bottom: 0; width: 1px; background: var(--border); }
+.timeline li:last-child::before { display: none; }
+.tl-dot { flex: none; width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; background: var(--border-strong); }
+.tl-stage .tl-dot { background: var(--accent); }
+.tl-status .tl-dot { background: var(--danger); }
+.tl-followup .tl-dot { background: var(--ok); }
+.tl-note .tl-dot { background: var(--warn); }
+.tl-body { display: flex; flex-direction: column; gap: 1px; }
+
+/* ---------- 新建投递（T14） ---------- */
+.newapp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; }
+.newapp-jd { display: flex; flex-direction: column; gap: 10px; }
+.newapp-jd .textarea { min-height: 330px; font-size: 13px; }
+.parse-hint { min-height: 18px; color: var(--text-3); font-size: 12px; }
+.parse-hint.ok { color: var(--ok); }
+.filled { animation: filled-flash 1.4s var(--ease); }
+@keyframes filled-flash { from { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); } }
+@media (max-width: 760px) {
+  .newapp { grid-template-columns: 1fr; }
+}
