@@ -206,6 +206,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .small { font-size: 12px; }
 
 .segmented { display: inline-flex; padding: 2px; border-radius: var(--radius-sm); background: var(--surface-3); gap: 2px; }
+.field > .segmented { align-self: flex-start; }
 .segmented button {
   border: 0; background: transparent; height: 26px; padding: 0 10px;
   border-radius: 5px; color: var(--text-2); cursor: pointer;
