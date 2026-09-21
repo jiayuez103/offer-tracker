@@ -4443,25 +4443,24 @@ export function openNewApp(preset = {}) {
 
   function runParse() {
     const found = parseJD(jdText, data.jdUrl);
-    const filled = [];
-    for (const [key, label] of PARSED_FIELDS) {
+    for (const [key] of PARSED_FIELDS) {
       const value = found[key];
-      if (!value || edited.has(key)) continue;
+      if (!value || edited.has(key) || data[key] === value) continue;
       if (data[key] && !autoFilled.has(key)) continue;
       data[key] = value;
       autoFilled.add(key);
       const el = controls[key];
       el.value = value;
       el.classList.remove('filled');
-      void el.offsetWidth; // 重新触发高亮动画
+      void el.offsetWidth; // 只给这次真正改了的字段重新触发高亮
       el.classList.add('filled');
-      filled.push(label);
     }
-    if (filled.length) {
-      hint.textContent = `识别到：${filled.join('、')}（可以直接改）`;
+    const labels = PARSED_FIELDS.filter(([key]) => autoFilled.has(key)).map(([, label]) => label);
+    if (labels.length) {
+      hint.textContent = `识别到：${labels.join('、')}（可以直接改）`;
       hint.className = 'parse-hint ok';
     } else if (jdText.trim() || data.jdUrl) {
-      hint.textContent = '没识别出新的字段，手动填一下就好';
+      hint.textContent = '没识别出字段，手动填一下就好';
       hint.className = 'parse-hint';
     }
   }
