@@ -85,6 +85,7 @@ export const store = {
     };
     setInterval(check, 4000);
     window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); }); // 切回来时立刻查一次
     document.addEventListener('focusout', () => {
       if (!pendingReload) return;
       pendingReload = false;

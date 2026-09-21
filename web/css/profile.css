@@ -1,0 +1,50 @@
+.pf { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 24px; max-width: 1140px; }
+.pf-nav { position: sticky; top: 0; align-self: start; display: flex; flex-direction: column; gap: 2px; padding-top: 52px; }
+.pf-nav a { padding: 5px 10px; border-radius: var(--radius-sm); color: var(--text-2); font-size: 13px; }
+.pf-nav a:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
+.pf-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.pf-bar {
+  position: sticky; top: -24px; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  margin: -24px 0 -4px; padding: 16px 0 10px;
+  background: var(--bg);
+}
+.pf-status { color: var(--text-3); font-size: 12.5px; }
+.pf-status.pending, .pf-status.saving { color: var(--accent-text); }
+.pf-status.saved { color: var(--ok); }
+.pf-status.error { color: var(--danger); }
+.pf-note { padding: 10px 14px; border-radius: var(--radius); background: var(--accent-soft); color: var(--accent-text); font-size: 13px; }
+
+.pf-section { padding: 16px 18px 18px; scroll-margin-top: 56px; }
+.pf-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.pf-head h2 { font-size: 15px; }
+.pf-hint { margin: -4px 0 12px; }
+.pf-entries { display: flex; flex-direction: column; gap: 14px; }
+.pf-entry { padding: 12px 14px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.pf-entry-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pf-entry-index {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface-3); color: var(--text-2);
+  font-size: 11px; font-weight: 600;
+}
+.pf-entry-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 中英并排 */
+.bi { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bi-cell { position: relative; display: block; }
+.bi-cell .input { padding-left: 32px; }
+.bi-tag {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  color: var(--text-3); font-size: 10.5px; font-weight: 600;
+  pointer-events: none;
+}
+.bi.long .textarea { min-height: 116px; }
+
+@media (max-width: 1000px) {
+  .pf { grid-template-columns: 1fr; }
+  .pf-nav { display: none; }
+}
+@media (max-width: 720px) {
+  .bi { grid-template-columns: 1fr; }
+}
