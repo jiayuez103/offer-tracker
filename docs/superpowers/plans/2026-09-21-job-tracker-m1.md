@@ -4142,7 +4142,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
       field('城市', text('cities', '多个用 / 分隔')),
       field('批次', pick('batch', BATCHES)),
       field('渠道', pick('channel', CHANNELS)),
-      field('投的简历', select(resumes, app.resumeId || '', (v) => save({ resumeId: v }), { placeholder: resumes.length ? '未选择' : '先到「简历」页添加版本' })),
+      field('投的简历', select(resumes, resumes.some((r) => r.value === app.resumeId) ? app.resumeId : '', (v) => save({ resumeId: v }), { placeholder: resumes.length ? '未选择' : '先到「简历」页添加版本' })),
       field('内推人', text('referrer')),
       field('内推码', text('referralCode')),
       field('网申截止（北京时间）', date('deadline')),
