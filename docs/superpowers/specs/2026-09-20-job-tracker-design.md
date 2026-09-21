@@ -2,6 +2,7 @@
 
 - 日期：2026-09-20
 - 状态：设计已确认（形态 = 本地 App + Chrome 插件）
+- 范围：V1 以本机使用为主，先让你用起来；架构上为以后部署成线上网页留好接口（见第 12 节）
 - 使用者：2027 届秋招，主投外企管培、次投互联网大厂；产品策略 + 市场营销双线；中英双语；人在洛杉矶，面试多按北京时间
 
 ## 1. 目标与非目标
@@ -21,12 +22,13 @@
 
 ```
 job-tracker/
-├── server.py                # Python 3.9 标准库 HTTP 服务，只监听 127.0.0.1:7317
+├── server.js                # Node.js 服务（零依赖，只用内置模块），只监听 127.0.0.1:7317
+├── shared/                  # 网页和服务端共用的纯 JS：阶段 / 类型常量、时间线规则、没动静计算、时区工具、ICS 生成
 ├── 启动Tracker.command       # 后台启动服务（已在运行则跳过）+ 打开浏览器
 ├── 停止Tracker.command
 ├── web/                     # 网页：原生 JS ES modules，无构建步骤，无外部 CDN / 字体
 ├── extension/               # Chrome MV3 插件
-├── tests/                   # 服务端 unittest
+├── tests/                   # node --test：服务端 + shared
 ├── data/                    # 个人数据（.gitignore）
 │   ├── profile.json
 │   ├── applications.json
@@ -39,6 +41,8 @@ job-tracker/
 ├── CLAUDE.md                # 给以后的 Claude：数据格式 + 修改规则
 └── README.md                # 给用户：启动、装插件、订阅日历
 ```
+
+服务端用 Node.js 而不用 Python：网页、服务端、插件都是 JavaScript，业务规则在 `shared/` 里只写一份，以后部署上线可以直接复用。
 
 三个组件之间只通过 HTTP API 和 `data/` 文件交互：
 
@@ -210,7 +214,8 @@ job-tracker/
 
 **可靠性**
 
-- 原子写：先写临时文件，再 `os.replace`；写操作加锁
+- 原子写：先写临时文件，再 `fs.renameSync` 替换；读写都用同步 API，在 Node 单线程里天然串行，不需要额外加锁
+- 数据读写集中在 `store` 模块（按集合读、写、改），其他代码不直接碰文件
 - 某个数据文件解析失败 → 返回 500 和清楚的错误（哪个文件、哪一行），并拒绝写这个文件，绝不自动重置
 - 备份：写某个文件前，如果它最近一份备份早于 30 分钟，就复制一份到 `backups/`；每个文件保留最近 30 份
 - 端口被占用时，启动脚本先请求 `/api/ping`：是自己就直接打开网页，不是就提示
@@ -231,11 +236,13 @@ job-tracker/
 | 素材库 | 按分类 / 语言筛选；编辑器带字数统计；一键复制；显示用在了哪些投递 |
 | 设置 | 没动静天数、周目标、时区、导出 / 导入全部数据、插件安装说明、日历订阅说明 |
 
-技术：一个很小的 `h()` DOM 辅助函数；集中的 store 负责加载和保存；页面可见时每 4 秒查一次 `/api/version`，切回窗口时也查，有变化就重新加载（有未保存的输入时先不刷新）；先改界面再请求，失败时弹提示并回滚。
+技术：所有请求都经过 `web/js/api.js`，用相对路径，不写死 localhost；一个很小的 `h()` DOM 辅助函数；集中的 store 负责加载和保存；页面可见时每 4 秒查一次 `/api/version`，切回窗口时也查，有变化就重新加载（有未保存的输入时先不刷新）；先改界面再请求，失败时弹提示并回滚。
 
 ## 7. Chrome 插件（M2）
 
 **文件**：`manifest.json`、`background.js`（service worker）、`content/lib/fields.js`（字段同义词字典）、`content/lib/match.js`（找标签 + 匹配，纯函数）、`content/lib/fill.js`（写入值）、`content/lib/clip.js`（识别公司 / 岗位 / JD）、`content/content.js`（侧边栏 + 消息）、`content/panel.css`。
+
+**服务地址**：可在插件设置里改，默认 `http://127.0.0.1:7317`。
 
 **权限**：`storage`、`scripting`；`host_permissions: ["<all_urls>"]`（需要能注入任意页面和其中的 iframe，也用来请求本地服务）。脚本按需注入：点插件图标或按快捷键时才注入，不会在每个网页上常驻。
 
@@ -268,7 +275,8 @@ job-tracker/
 
 ## 9. 测试
 
-- `tests/test_server.py`（unittest）：增删改查、PATCH 合并和自动时间线、原子写、损坏文件拒绝写入、备份节流和保留份数、Host / Origin 校验、JD 读写、文件上传和路径穿越
+- `tests/shared.test.js`（`node --test`）：时间线规则、没动静计算、时区换算（含 2026-11-01 夏令时切换）、ICS 输出
+- `tests/server.test.js`（`node --test`）：增删改查、PATCH 合并和自动时间线、原子写、损坏文件拒绝写入、备份节流和保留份数、Host / Origin 校验、JD 读写、文件上传和路径穿越
 - `extension/test/*.test.js`（`node --test`）：标签清洗、字段匹配（中英同义词 + 分节）、语言选择、从链接 / 标题识别公司、JD 字段提取
 - `extension/test/pages/*.html`：仿普通表单、Ant Design、Element UI、Workday、iframe 嵌套的测试页，加一个模拟 `chrome.*` 的注入器，在内置浏览器里验证填写结果
 - 网页：在内置浏览器里走一遍主要流程（新建 / 编辑 / 拖拽 / 删除投递、带时区的日程、档案自动保存、上传简历、素材库、导出 .ics），检查控制台无报错
@@ -284,3 +292,16 @@ job-tracker/
 - 登录、验证码、最后提交都由用户完成
 - 插件只支持 Chrome；Safari 只能用网页部分
 - 只能在这台 Mac 上用
+
+## 12. 以后部署上线（不在 V1 范围）
+
+V1 先保证本机好用。下面几条约束让以后上线只需要换后端，不用重写：
+
+- 网页是纯静态文件，数据请求全部集中在 `web/js/api.js`、用相对路径；以后可以原样部署到 Vercel / Netlify / Cloudflare Pages 这类静态托管，只需改 API 地址、加上登录凭证
+- 服务端的数据读写集中在 `store` 模块，以后换成数据库只需要重写这一层
+- 业务规则（时间线、没动静、时区、ICS）在 `shared/`，线上后端直接复用
+- 插件的服务地址可配置，以后指向线上 API 即可
+- 代码里不写任何个人信息：个人数据只在 `data/`，时区等偏好在 settings 里，换一个人拿到代码也能用
+- 数据是带 id 和时间戳的 JSON 记录，导出后能直接导入任何数据库
+
+上线时需要新增：登录和按用户隔离数据、HTTPS、数据库（如 Supabase、Cloudflare D1）、隐私说明（个人信息会离开本机）。到时要先定一个问题：只给自己多设备用，还是做成别人也能用的产品——两者在登录、数据隔离和成本上差别很大。
