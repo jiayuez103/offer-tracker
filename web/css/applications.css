@@ -1,0 +1,89 @@
+.apps-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.apps-toolbar .select { width: auto; min-width: 112px; }
+.apps-count { color: var(--text-3); font-size: 13px; }
+.search-chip { height: 26px; padding: 0 4px 0 10px; font-size: 12.5px; }
+.search-chip button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 15px; padding: 0 4px; }
+
+.apps-welcome { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 18px 20px; margin-bottom: 16px; }
+.apps-welcome p { margin: 4px 0 0; }
+
+/* 看板：6 列进行中 + 「已结束」；收起时「已结束」是一条 44px 的窄边 */
+.board {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(176px, 1fr));
+  gap: 12px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+.board.closed-collapsed { grid-template-columns: repeat(6, minmax(176px, 1fr)) 44px; }
+.col.collapsed { align-items: center; gap: 10px; min-height: 180px; padding: 12px 0; cursor: pointer; }
+.col.collapsed:hover, .col.collapsed:focus-visible { background: var(--surface-3); outline: none; }
+.col.collapsed .col-count { margin: 0; }
+.col-vlabel { writing-mode: vertical-rl; letter-spacing: 0.2em; color: var(--text-2); font-size: 13px; font-weight: 600; }
+.col-head .btn { margin: -4px -6px -4px 0; }
+.col {
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 190px);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.12s, background 0.12s;
+}
+.col.drop { border-color: var(--accent); background: var(--accent-soft); }
+.col-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
+.col-count { margin-left: auto; color: var(--text-3); font-weight: 500; font-variant-numeric: tabular-nums; }
+.col-list { display: flex; flex-direction: column; gap: 8px; padding: 0 8px 10px; overflow-y: auto; min-height: 64px; }
+.col-empty {
+  padding: 14px 8px;
+  border: 1px dashed var(--border-strong); border-radius: var(--radius);
+  color: var(--text-3); font-size: 12px; text-align: center;
+}
+
+.app-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: box-shadow 0.12s, border-color 0.12s, opacity 0.12s;
+}
+.app-card:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+.app-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app-card.dragging { opacity: 0.4; }
+.app-card.closed { opacity: 0.75; }
+.card-top { display: flex; align-items: center; gap: 6px; }
+.card-company { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-position { color: var(--text-2); font-size: 13px; line-height: 1.4; }
+.card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.card-tags:empty { display: none; }
+.card-meta { display: flex; align-items: center; gap: 5px; color: var(--text-3); font-size: 12px; }
+.card-meta .icon { width: 13px; height: 13px; }
+.card-meta.event { color: var(--st-interview); }
+.card-meta.urgent { color: var(--danger); }
+.card-meta.stale { color: var(--warn); }
+
+.chip.market { background: #e3f3ef; color: #1f7a6c; }
+@media (prefers-color-scheme: dark) {
+  .chip.market { background: #17302b; color: #5cc5b0; }
+}
+
+/* 列表 */
+.table-wrap { overflow: auto; }
+.apps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.apps-table th {
+  position: sticky; top: 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-3); font-weight: 500; text-align: left; white-space: nowrap;
+}
+.apps-table th.sortable { cursor: pointer; user-select: none; }
+.apps-table th.sorted { color: var(--text); }
+.apps-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.apps-table tbody tr { cursor: pointer; }
+.apps-table tbody tr:hover { background: var(--surface-2); }
+.apps-table tbody tr:last-child td { border-bottom: 0; }
+.cell-company b { display: block; font-weight: 600; }
+.cell-sub { color: var(--text-3); font-size: 12px; }
+.stale-text { color: var(--warn); }
+.urgent-text { color: var(--danger); }

@@ -3506,7 +3506,7 @@ import { nextEvent, isStale, daysSinceProgress, stageIndex, isClosed } from '../
 import { daysUntil, dualTime } from '../../shared/time.js';
 
 const PREF_KEY = 'jt.applications.prefs';
-const DEFAULT_PREFS = { mode: 'board', track: '', type: '', status: 'active', sort: 'next', dir: 'asc' };
+const DEFAULT_PREFS = { mode: 'board', track: '', type: '', status: 'active', sort: 'next', dir: 'asc', closedOpen: false };
 const BOARD_COLUMNS = [...STAGES, { key: 'closed', label: '已结束' }];
 
 function loadPrefs() {
@@ -3526,6 +3526,7 @@ function savePrefs(prefs) {
 }
 
 const columnOf = (app) => (isClosed(app) ? 'closed' : app.stage);
+const statusMatch = (app, status) => status === 'all' || (status === 'closed' ? isClosed(app) : !isClosed(app));
 const trackClass = (track) => (track === '产品' ? 'accent' : track === '市场' ? 'market' : '');
 
 function matches(app, q) {
@@ -3546,10 +3547,11 @@ export function render(root, { params }) {
     const apps = store.state.applications.filter((a) => (!prefs.track || a.track === prefs.track)
       && (!prefs.type || a.companyType === prefs.type)
       && matches(a, q));
-    toolbar.replaceChildren(...renderToolbar(prefs, draw, q, apps.length));
+    const visible = prefs.mode === 'list' ? apps.filter((a) => statusMatch(a, prefs.status)) : apps;
+    toolbar.replaceChildren(...renderToolbar(prefs, draw, q, visible.length).filter(Boolean));
     content.replaceChildren(
       store.state.applications.length ? '' : renderWelcome(),
-      prefs.mode === 'board' ? renderBoard(apps) : renderList(apps, prefs, draw),
+      prefs.mode === 'board' ? renderBoard(apps, prefs, draw) : renderList(apps, prefs, draw),
     );
   };
 
@@ -3605,16 +3607,39 @@ function cardCompare(now) {
     || String(b.updatedAt).localeCompare(String(a.updatedAt));
 }
 
-function renderBoard(apps) {
+function renderBoard(apps, prefs, redraw) {
   const now = new Date();
-  const board = h('div', { class: 'board' });
+  // 「已结束」默认收成一条窄边，让进行中的 6 列在笔记本屏幕上一屏放下
+  const setClosedOpen = (open) => {
+    prefs.closedOpen = open;
+    savePrefs(prefs);
+    redraw();
+  };
+  const board = h('div', { class: ['board', !prefs.closedOpen && 'closed-collapsed'] });
   for (const col of BOARD_COLUMNS) {
     const items = apps.filter((a) => columnOf(a) === col.key).sort(cardCompare(now));
+    if (col.key === 'closed' && !prefs.closedOpen) {
+      const strip = h('section', {
+        class: 'col col-closed collapsed',
+        dataset: { col: 'closed' },
+        title: '展开「已结束」',
+        role: 'button',
+        tabindex: '0',
+        onClick: () => setClosedOpen(true),
+        onKeydown: (e) => { if (e.key === 'Enter') setClosedOpen(true); },
+      }, h('span', { class: 'dot closed' }), h('span', { class: 'col-vlabel' }, col.label), h('span', { class: 'col-count' }, String(items.length)));
+      bindDrop(strip, 'closed');
+      board.append(strip);
+      continue;
+    }
     const column = h('section', { class: ['col', `col-${col.key}`], dataset: { col: col.key } },
       h('header', { class: 'col-head' },
         h('span', { class: `dot ${col.key}` }),
         h('span', null, col.label),
-        h('span', { class: 'col-count' }, String(items.length))),
+        h('span', { class: 'col-count' }, String(items.length)),
+        col.key === 'closed'
+          ? h('button', { type: 'button', class: 'btn sm ghost icon-only', title: '收起', onClick: () => setClosedOpen(false) }, icon('x'))
+          : null),
       h('div', { class: 'col-list' },
         items.map((a) => renderCard(a, now)),
         items.length ? null : h('div', { class: 'col-empty' }, col.key === 'wishlist' ? '把想投的岗位先收在这里' : '拖到这里')));
@@ -3723,13 +3748,14 @@ function compare(x, y, dir) {
   if (x === y) return 0;
   if (x === '') return 1; // 空值总是排在最后
   if (y === '') return -1;
-  return (x > y ? 1 : -1) * dir;
+  const c = typeof x === 'string' && typeof y === 'string' ? x.localeCompare(y, 'zh-Hans-CN') : (x > y ? 1 : -1); // 中文按拼音
+  return c * dir;
 }
 
 function renderList(apps, prefs, redraw) {
   const now = new Date();
   const settings = store.state.settings;
-  const rows = apps.filter((a) => prefs.status === 'all' || (prefs.status === 'closed' ? isClosed(a) : !isClosed(a)));
+  const rows = apps.filter((a) => statusMatch(a, prefs.status));
   if (!rows.length) return emptyState(apps.length ? '没有符合条件的投递' : '还没有投递记录');
   const col = LIST_COLUMNS.find((c) => c.key === prefs.sort) || LIST_COLUMNS[6];
   const dir = prefs.dir === 'desc' ? -1 : 1;
@@ -3779,16 +3805,21 @@ function renderList(apps, prefs, redraw) {
 .apps-welcome { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 18px 20px; margin-bottom: 16px; }
 .apps-welcome p { margin: 4px 0 0; }
 
-/* 看板 */
+/* 看板：6 列进行中 + 「已结束」；收起时「已结束」是一条 44px 的窄边 */
 .board {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(232px, 1fr);
+  grid-template-columns: repeat(7, minmax(176px, 1fr));
   gap: 12px;
   align-items: start;
   overflow-x: auto;
   padding-bottom: 12px;
 }
+.board.closed-collapsed { grid-template-columns: repeat(6, minmax(176px, 1fr)) 44px; }
+.col.collapsed { align-items: center; gap: 10px; min-height: 180px; padding: 12px 0; cursor: pointer; }
+.col.collapsed:hover, .col.collapsed:focus-visible { background: var(--surface-3); outline: none; }
+.col.collapsed .col-count { margin: 0; }
+.col-vlabel { writing-mode: vertical-rl; letter-spacing: 0.2em; color: var(--text-2); font-size: 13px; font-weight: 600; }
+.col-head .btn { margin: -4px -6px -4px 0; }
 .col {
   display: flex; flex-direction: column;
   max-height: calc(100vh - 190px);
@@ -5404,7 +5435,7 @@ export function render(root) {
           list ? h('span', { class: 'muted small' }, `${list.length} 条`) : null,
           h('span', { class: 'spacer' }),
           list ? h('button', { class: 'btn sm', type: 'button', onClick: () => addEntry(sec) }, icon('plus'), '添加') : null),
-        sec.hint ? h('p', { class: 'muted small pf-hint' }, sec.hint) : null,
+        sec.hint ? h('p', { class: 'muted small pf-hint' }, sec.hint) : '',
         body);
     };
     painters[sec.key] = paint;
@@ -5428,7 +5459,7 @@ export function render(root) {
         h('span', { class: 'spacer' }),
         h('span', { class: 'muted small' }, '英文网申会用 EN 那一栏')),
       h('div', { class: 'pf-note' }, '以后的网申插件会用这里的内容填表。身份证号、护照号和密码不要存在这里。'),
-      SECTIONS.map(renderSection));
+      ...SECTIONS.map(renderSection));
   };
   buildAll();
   root.append(h('div', { class: 'pf' }, nav, main));
