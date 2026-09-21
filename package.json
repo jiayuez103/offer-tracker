@@ -1,0 +1,14 @@
+{
+  "name": "job-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "秋招投递 tracker：本地服务 + 网页 + Chrome 插件",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test \"tests/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
