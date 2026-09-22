@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>网申 · 普通表单</title>
+<style>
+  body { font: 14px/1.6 -apple-system, "PingFang SC", sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  label { display: block; margin: 8px 0 2px; }
+  input, select, textarea { display: block; width: 100%; padding: 6px; box-sizing: border-box; }
+  input[type="radio"] { display: inline; width: auto; }
+  fieldset { margin: 12px 0; }
+</style>
+</head>
+<body>
+<h1>网申表单（普通 HTML）</h1>
+<form id="f" onsubmit="event.preventDefault(); document.body.dataset.submitted = '1';">
+  <h2>基本信息</h2>
+  <label for="name">姓名 *</label><input id="name" required>
+  <label for="en">英文名</label><input id="en">
+  <label>手机号码<input id="phone" type="tel"></label>
+  <label for="email">电子邮箱</label><input id="email" type="email">
+  <div id="gender">性别 <label><input type="radio" name="gender" value="m">男</label><label><input type="radio" name="gender" value="f">女</label></div>
+  <label for="birth">出生日期</label><input id="birth" type="date">
+  <label for="pol">政治面貌</label>
+  <select id="pol"><option value="">请选择</option><option>中共党员</option><option>中共预备党员</option><option>共青团员</option><option>群众</option></select>
+  <label for="city">现居城市</label><input id="city">
+  <label for="captcha">验证码 *</label><input id="captcha" required>
+  <label for="pwd">密码</label><input id="pwd" type="password">
+
+  <h2>教育经历</h2>
+  <fieldset><legend>第 1 段</legend>
+    <label>学校名称<input class="school"></label>
+    <label>学历<select class="degree"><option value="">请选择</option><option>本科</option><option>硕士研究生</option><option>博士研究生</option></select></label>
+    <label>专业<input class="major"></label>
+    <label>入学时间<input class="start" type="month"></label>
+    <label>毕业时间<input class="end" type="month"></label>
+    <label>GPA<input class="gpa"></label>
+  </fieldset>
+  <fieldset><legend>第 2 段</legend>
+    <label>学校名称<input class="school"></label>
+    <label>学历<select class="degree"><option value="">请选择</option><option>本科</option><option>硕士研究生</option><option>博士研究生</option></select></label>
+    <label>专业<input class="major"></label>
+    <label>入学时间<input class="start" type="month"></label>
+    <label>毕业时间<input class="end" type="month"></label>
+    <label>GPA<input class="gpa"></label>
+  </fieldset>
+
+  <h2>实习经历</h2>
+  <fieldset><legend>第 1 段</legend>
+    <label>公司名称<input class="company"></label>
+    <label>职位<input class="title"></label>
+    <label>开始时间<input class="wstart" placeholder="YYYY-MM"></label>
+    <label>结束时间<input class="wend" placeholder="YYYY-MM"></label>
+    <label>工作内容<textarea class="desc" maxlength="500"></textarea></label>
+  </fieldset>
+
+  <h2>其他</h2>
+  <label>自我评价<textarea id="self"></textarea></label>
+  <label>是否有海外经历<input id="overseas"></label>
+  <label>微信号（已有内容，不该被覆盖）<input id="wechat" value="我自己填的"></label>
+  <label>上传简历<input id="resume" type="file" accept=".pdf,.doc,.docx"></label>
+  <label>上传证件照<input id="photo" type="file" accept="image/*"></label>
+  <button type="submit">提交</button>
+</form>
+<script src="/extension/content/lib/fields.js"></script>
+<script src="/extension/content/lib/match.js"></script>
+<script src="/extension/content/lib/fill.js"></script>
+<script src="/extension/content/lib/clip.js"></script>
+<script src="/extension/content/agent.js"></script>
+<script src="/extension/test/fixture-data.js"></script>
+<script type="module" src="/extension/test/harness.js"></script>
+</body>
+</html>

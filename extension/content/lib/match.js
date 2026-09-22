@@ -121,6 +121,25 @@
   const textOf = (node) => (node ? (node.innerText ?? node.textContent ?? '') : '').replace(/\s+/g, ' ').trim();
   JT.textOf = textOf;
 
+  /** 从近到远最多 3 层表单项容器（Ant 的 .ant-form-item-control 类名里也带 form-item，要继续往外找） */
+  const formItems = (el) => {
+    const out = [];
+    let item = el.closest(JT.FORM_ITEM_SELECTOR);
+    while (item && out.length < 3) {
+      out.push(item);
+      item = item.parentElement ? item.parentElement.closest(JT.FORM_ITEM_SELECTOR) : null;
+    }
+    return out;
+  };
+
+  /** label 自己的文字：去掉里面的输入框、下拉框（否则会把所有选项文字也算进来） */
+  const ownText = (label) => {
+    if (!label) return '';
+    const copy = label.cloneNode(true);
+    copy.querySelectorAll('input, select, textarea, button').forEach((n) => n.remove());
+    return (copy.textContent || '').replace(/\s+/g, ' ').trim();
+  };
+
   JT.pageLang = (doc = document) => {
     const sample = (doc.body?.innerText || '').slice(0, 4000);
     const cjk = (sample.match(/[㐀-鿿]/g) || []).length;
@@ -140,14 +159,13 @@
     }
     if (el.id) {
       const l = doc.querySelector(`label[for="${CSS.escape(el.id)}"]`);
-      if (textOf(l)) return textOf(l);
+      if (ownText(l)) return ownText(l);
     }
     const wrap = el.closest('label');
-    if (wrap && textOf(wrap)) return textOf(wrap);
-    const item = el.closest(JT.FORM_ITEM_SELECTOR);
-    if (item) {
-      const lab = [...item.querySelectorAll(LABEL_SELECTOR)].find((n) => !n.contains(el) && textOf(n));
-      if (lab && textOf(lab).length <= 60) return textOf(lab);
+    if (wrap && ownText(wrap)) return ownText(wrap);
+    for (const item of formItems(el)) {
+      const lab = [...item.querySelectorAll(LABEL_SELECTOR)].find((n) => !n.contains(el) && ownText(n));
+      if (lab && ownText(lab).length <= 60) return ownText(lab);
     }
     const aria = el.getAttribute('aria-label');
     if (aria) return aria;
@@ -172,10 +190,9 @@
     || radio.parentElement;
 
   JT.groupLabelOf = (radio) => {
-    const item = radio.closest(JT.FORM_ITEM_SELECTOR);
-    if (item) {
-      const lab = [...item.querySelectorAll(LABEL_SELECTOR)].find((n) => !n.querySelector('input[type="radio"]') && !n.closest('.ant-radio-wrapper, .el-radio') && textOf(n));
-      if (lab) return textOf(lab);
+    for (const item of formItems(radio)) {
+      const lab = [...item.querySelectorAll(LABEL_SELECTOR)].find((n) => !n.querySelector('input[type="radio"]') && !n.closest('.ant-radio-wrapper, .el-radio') && ownText(n));
+      if (lab) return ownText(lab);
     }
     const box = JT.groupContainer(radio);
     const legend = box.querySelector?.('legend');
@@ -223,5 +240,5 @@
     || el.getAttribute('aria-required') === 'true'
     || /\*/.test(label || '')
     || !!el.closest('.is-required, .ant-form-item-required, .ivu-form-item-required')
-    || !!el.closest(JT.FORM_ITEM_SELECTOR)?.querySelector('.ant-form-item-required, .is-required');
+    || formItems(el).some((item) => item.matches('.is-required') || !!item.querySelector('.ant-form-item-required, .is-required, .ivu-form-item-required'));
 })();

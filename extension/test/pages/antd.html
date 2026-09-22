@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>网申 · Ant Design 风格</title>
+<style>
+  body { font: 14px/1.6 -apple-system, "PingFang SC", sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 18px; font-weight: 600; margin: 16px 0 8px; }
+  .ant-form-item { display: flex; gap: 12px; margin: 8px 0; align-items: center; }
+  .ant-form-item-label { width: 110px; text-align: right; }
+  .ant-form-item-required::before { content: "* "; color: #c00; }
+  .ant-form-item-control { flex: 1; }
+  .ant-input, .ant-picker-input input { width: 100%; padding: 6px; box-sizing: border-box; }
+  .ant-select { position: relative; border: 1px solid #ccc; border-radius: 4px; min-height: 32px; }
+  .ant-select-selector { display: flex; align-items: center; min-height: 32px; padding: 0 8px; cursor: pointer; }
+  .ant-select-selection-search input { border: 0; outline: 0; width: 140px; }
+  .ant-select-selection-placeholder { color: #999; }
+  .ant-select-dropdown { background: #fff; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,.15); z-index: 10; }
+  .ant-select-item-option { padding: 6px 10px; cursor: pointer; }
+  .ant-select-item-option:hover { background: #eef; }
+  .ant-picker-range { display: flex; gap: 8px; align-items: center; }
+  #model { background: #f6f6f6; padding: 8px; white-space: pre-wrap; font: 12px monospace; }
+</style>
+</head>
+<body>
+<h1>网申表单（Ant Design 风格）</h1>
+<div class="section">
+  <div class="section-title">基本信息</div>
+  <div class="ant-form-item"><div class="ant-form-item-label"><label class="ant-form-item-required" title="姓名">姓名</label></div><div class="ant-form-item-control"><input class="ant-input" data-model="name"></div></div>
+  <div class="ant-form-item"><div class="ant-form-item-label"><label title="手机号">手机号</label></div><div class="ant-form-item-control"><input class="ant-input" data-model="phone"></div></div>
+  <div class="ant-form-item"><div class="ant-form-item-label"><label class="ant-form-item-required" title="性别">性别</label></div><div class="ant-form-item-control">
+    <div class="ant-select" data-model="gender" data-options="男,女"><div class="ant-select-selector"><span class="ant-select-selection-search"><input readonly></span><span class="ant-select-selection-placeholder">请选择</span></div></div>
+  </div></div>
+</div>
+<div class="section">
+  <div class="section-title">教育经历</div>
+  <div class="ant-form-item"><div class="ant-form-item-label"><label class="ant-form-item-required" title="学校">学校</label></div><div class="ant-form-item-control">
+    <div class="ant-select" data-model="school" data-remote data-options="示例大学,示例大学附属中学,测试学院,Example University"><div class="ant-select-selector"><span class="ant-select-selection-search"><input placeholder="输入学校名搜索"></span></div></div>
+  </div></div>
+  <div class="ant-form-item"><div class="ant-form-item-label"><label title="学历">学历</label></div><div class="ant-form-item-control">
+    <div class="ant-select" data-model="degree" data-options="本科,硕士,博士"><div class="ant-select-selector"><span class="ant-select-selection-search"><input readonly></span><span class="ant-select-selection-placeholder">请选择</span></div></div>
+  </div></div>
+  <div class="ant-form-item"><div class="ant-form-item-label"><label title="专业">专业</label></div><div class="ant-form-item-control"><input class="ant-input" data-model="major"></div></div>
+  <div class="ant-form-item"><div class="ant-form-item-label"><label title="在校时间">在校时间</label></div><div class="ant-form-item-control">
+    <div class="ant-picker ant-picker-range"><div class="ant-picker-input"><input placeholder="开始月份" data-model="eduStart"></div><span>→</span><div class="ant-picker-input"><input placeholder="结束月份" data-model="eduEnd"></div></div>
+  </div></div>
+</div>
+<h3>model</h3>
+<pre id="model"></pre>
+<script>
+  window.model = {};
+  const showModel = () => { document.getElementById('model').textContent = JSON.stringify(window.model, null, 2); };
+  // React 风格受控输入：实例上装了 value 追踪，直接 input.value = x 不会被认为是用户输入
+  document.querySelectorAll('input[data-model]').forEach((input) => {
+    const key = input.dataset.model;
+    const desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    let tracked = input.value;
+    Object.defineProperty(input, 'value', {
+      configurable: true,
+      get() { return desc.get.call(this); },
+      set(v) { tracked = String(v); desc.set.call(this, v); },
+    });
+    input.addEventListener('input', () => {
+      const now = desc.get.call(input);
+      if (now !== tracked) { tracked = now; window.model[key] = now; showModel(); }
+    });
+  });
+  // 自定义下拉：mousedown 打开，点选项选中；data-remote 的要先输入关键字才有选项
+  document.querySelectorAll('.ant-select').forEach((sel) => {
+    const key = sel.dataset.model;
+    const all = sel.dataset.options.split(',');
+    const remote = sel.hasAttribute('data-remote');
+    const selector = sel.querySelector('.ant-select-selector');
+    const search = sel.querySelector('input');
+    let dropdown = null;
+    const close = () => { if (dropdown) dropdown.remove(); dropdown = null; };
+    const show = (list) => {
+      close();
+      dropdown = document.createElement('div');
+      dropdown.className = 'ant-select-dropdown';
+      const r = sel.getBoundingClientRect();
+      dropdown.style.cssText = `position:absolute;left:${r.left + scrollX}px;top:${r.bottom + scrollY}px;width:${r.width}px`;
+      for (const text of list) {
+        const item = document.createElement('div');
+        item.className = 'ant-select-item ant-select-item-option';
+        const content = document.createElement('div');
+        content.className = 'ant-select-item-option-content';
+        content.textContent = text;
+        item.append(content);
+        item.addEventListener('click', () => {
+          window.model[key] = text;
+          showModel();
+          const ph = sel.querySelector('.ant-select-selection-placeholder');
+          if (ph) ph.remove();
+          let shown = sel.querySelector('.ant-select-selection-item');
+          if (!shown) { shown = document.createElement('span'); shown.className = 'ant-select-selection-item'; selector.append(shown); }
+          shown.textContent = text;
+          search.value = '';
+          close();
+        });
+        dropdown.append(item);
+      }
+      document.body.append(dropdown);
+    };
+    selector.addEventListener('mousedown', () => { if (!dropdown) show(remote ? [] : all); });
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      show(remote && !q ? [] : all.filter((t) => t.toLowerCase().includes(q)));
+    });
+    search.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    document.addEventListener('mousedown', (e) => { if (dropdown && !sel.contains(e.target) && !dropdown.contains(e.target)) close(); });
+  });
+</script>
+<script src="/extension/content/lib/fields.js"></script>
+<script src="/extension/content/lib/match.js"></script>
+<script src="/extension/content/lib/fill.js"></script>
+<script src="/extension/content/lib/clip.js"></script>
+<script src="/extension/content/agent.js"></script>
+<script src="/extension/test/fixture-data.js"></script>
+<script type="module" src="/extension/test/harness.js"></script>
+</body>
+</html>

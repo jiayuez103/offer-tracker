@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>网申 · Element UI 风格</title>
+<style>
+  body { font: 14px/1.6 -apple-system, "PingFang SC", sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  .el-form-item { display: flex; gap: 12px; margin: 10px 0; align-items: center; }
+  .el-form-item__label { width: 100px; text-align: right; }
+  .is-required .el-form-item__label::before { content: "* "; color: #f56c6c; }
+  .el-form-item__content { flex: 1; }
+  .el-input__inner { width: 100%; padding: 6px; box-sizing: border-box; }
+  .el-select .el-input__inner { cursor: pointer; }
+  .el-select-dropdown__item { list-style: none; padding: 6px 10px; cursor: pointer; }
+  .el-select-dropdown ul { margin: 0; padding: 4px 0; }
+</style>
+</head>
+<body>
+<h1>网申表单（Element UI 风格）</h1>
+<div class="block">
+  <h3 class="block-title">基本信息</h3>
+  <form class="el-form" onsubmit="return false">
+    <div class="el-form-item is-required"><label class="el-form-item__label">姓名</label><div class="el-form-item__content"><div class="el-input"><input class="el-input__inner" data-model="name"></div></div></div>
+    <div class="el-form-item"><label class="el-form-item__label">邮箱</label><div class="el-form-item__content"><div class="el-input"><input class="el-input__inner" data-model="email"></div></div></div>
+    <div class="el-form-item is-required"><label class="el-form-item__label">政治面貌</label><div class="el-form-item__content">
+      <div class="el-select" data-model="political" data-options="中共党员,中共预备党员,共青团员,群众"><div class="el-input"><input class="el-input__inner" readonly placeholder="请选择"></div></div>
+    </div></div>
+    <div class="el-form-item is-required"><label class="el-form-item__label">籍贯</label><div class="el-form-item__content"><div class="el-input"><input class="el-input__inner" data-model="hometown"></div></div></div>
+    <div class="el-form-item is-required"><label class="el-form-item__label">身份证号</label><div class="el-form-item__content"><div class="el-input"><input class="el-input__inner" data-model="idcard"></div></div></div>
+  </form>
+</div>
+<div class="block">
+  <h3 class="block-title">实习经历</h3>
+  <form class="el-form" onsubmit="return false">
+    <div class="el-form-item"><label class="el-form-item__label">实习单位</label><div class="el-form-item__content"><div class="el-input"><input class="el-input__inner" data-model="company"></div></div></div>
+    <div class="el-form-item"><label class="el-form-item__label">岗位</label><div class="el-form-item__content"><div class="el-input"><input class="el-input__inner" data-model="title"></div></div></div>
+    <div class="el-form-item"><label class="el-form-item__label">描述</label><div class="el-form-item__content"><textarea class="el-textarea__inner" data-model="desc" rows="3" style="width:100%"></textarea></div></div>
+  </form>
+</div>
+<pre id="model"></pre>
+<script>
+  window.model = {};
+  const showModel = () => { document.getElementById('model').textContent = JSON.stringify(window.model, null, 2); };
+  // Vue 风格：input 事件更新 model
+  document.querySelectorAll('[data-model]:not(.el-select)').forEach((el) => {
+    el.addEventListener('input', () => { window.model[el.dataset.model] = el.value; showModel(); });
+  });
+  // el-select：点输入框打开下拉（下拉挂在 body 上，平时隐藏）
+  document.querySelectorAll('.el-select').forEach((sel) => {
+    const input = sel.querySelector('input');
+    const dd = document.createElement('div');
+    dd.className = 'el-select-dropdown el-popper';
+    dd.style.cssText = 'display:none;position:absolute;background:#fff;border:1px solid #ddd;z-index:10';
+    const ul = document.createElement('ul');
+    for (const text of sel.dataset.options.split(',')) {
+      const li = document.createElement('li');
+      li.className = 'el-select-dropdown__item';
+      const span = document.createElement('span');
+      span.textContent = text;
+      li.append(span);
+      li.addEventListener('click', () => { input.value = text; window.model[sel.dataset.model] = text; showModel(); dd.style.display = 'none'; });
+      ul.append(li);
+    }
+    dd.append(ul);
+    document.body.append(dd);
+    input.addEventListener('click', () => {
+      const r = input.getBoundingClientRect();
+      dd.style.left = `${r.left + scrollX}px`;
+      dd.style.top = `${r.bottom + scrollY}px`;
+      dd.style.minWidth = `${r.width}px`;
+      dd.style.display = 'block';
+    });
+    document.addEventListener('mousedown', (e) => { if (!sel.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none'; });
+  });
+</script>
+<script src="/extension/content/lib/fields.js"></script>
+<script src="/extension/content/lib/match.js"></script>
+<script src="/extension/content/lib/fill.js"></script>
+<script src="/extension/content/lib/clip.js"></script>
+<script src="/extension/content/agent.js"></script>
+<script src="/extension/test/fixture-data.js"></script>
+<script type="module" src="/extension/test/harness.js"></script>
+</body>
+</html>

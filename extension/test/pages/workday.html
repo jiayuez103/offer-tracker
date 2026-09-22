@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Apply · Workday style</title>
+<style>
+  body { font: 14px/1.6 -apple-system, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  label { display: block; margin: 10px 0 2px; font-weight: 600; }
+  input, select, textarea { display: block; width: 100%; padding: 6px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<h1>Apply for Brand Management Trainee</h1>
+<h2 data-automation-id="sectionHeader">My Information</h2>
+<div data-automation-id="formField-legalNameSection_firstName"><label for="fn">First Name*</label><input id="fn" data-automation-id="legalNameSection_firstName"></div>
+<div data-automation-id="formField-legalNameSection_lastName"><label for="ln">Last Name*</label><input id="ln" data-automation-id="legalNameSection_lastName"></div>
+<div><label for="em">Email Address*</label><input id="em" type="email"></div>
+<div data-automation-id="formField-countryPhoneCode"><label for="cc">Country Phone Code</label><select id="cc"><option>Select One</option><option>United States (+1)</option><option>China (+86)</option></select></div>
+<div><label for="ph">Phone Number*</label><input id="ph" type="tel"></div>
+<div><input id="nolabel" data-automation-id="addressSection_city" placeholder=""></div>
+
+<h2 data-automation-id="sectionHeader">Education</h2>
+<div><label for="sc">School or University*</label><input id="sc"></div>
+<div><label for="dg">Degree*</label><select id="dg"><option>Select One</option><option>Bachelor of Arts</option><option>Master of Science</option><option>PhD</option></select></div>
+<div><label for="fs">Field of Study</label><input id="fs"></div>
+<div><label for="efrom">From</label><input id="efrom" placeholder="MM/YYYY"></div>
+<div><label for="eto">To (Actual or Expected)</label><input id="eto" placeholder="MM/YYYY"></div>
+
+<h2 data-automation-id="sectionHeader">Work Experience</h2>
+<div><label for="jt">Job Title*</label><input id="jt"></div>
+<div><label for="co">Company*</label><input id="co"></div>
+<div><label for="wfrom">From</label><input id="wfrom" placeholder="MM/YYYY"></div>
+<div><label for="rd">Role Description</label><textarea id="rd"></textarea></div>
+
+<h2 data-automation-id="sectionHeader">Resume</h2>
+<div><label for="cv">Resume/CV</label><input id="cv" type="file"></div>
+<script src="/extension/content/lib/fields.js"></script>
+<script src="/extension/content/lib/match.js"></script>
+<script src="/extension/content/lib/fill.js"></script>
+<script src="/extension/content/lib/clip.js"></script>
+<script src="/extension/content/agent.js"></script>
+<script src="/extension/test/fixture-data.js"></script>
+<script type="module" src="/extension/test/harness.js"></script>
+</body>
+</html>

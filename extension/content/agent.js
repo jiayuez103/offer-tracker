@@ -6,7 +6,7 @@
 
   const LISTS = ['education', 'work', 'projects', 'activities', 'awards', 'languages', 'certificates'];
   const CAPTCHA = /验证码|校验码|captcha|verification code/i;
-  const NOT_TEXT = new Set(['checkbox', 'radio', 'file', 'submit', 'button', 'reset', 'image', 'hidden', 'range', 'color']);
+  const NOT_TEXT = new Set(['password', 'checkbox', 'radio', 'file', 'submit', 'button', 'reset', 'image', 'hidden', 'range', 'color']); // 密码框永远不碰
   const FILE_GOOD = /简历|履历|resume|\bcv\b|附件|attachment|上传/i;
   const FILE_STRONG = /简历|履历|resume|\bcv\b/i;
   const FILE_BAD = /照片|头像|证件照|photo|avatar|图片|作品集|portfolio|成绩单|transcript|证书/i;
