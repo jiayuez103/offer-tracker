@@ -200,6 +200,7 @@ job-tracker/
 | DELETE | `/api/resumes/{id}/files/{stored}` | 删除某个文件 |
 | GET | `/files/resumes/{stored}` | 打开 / 下载简历文件 |
 | GET | `/calendar.ics` | 全部日程 + 网申截止（订阅或下载） |
+| POST | `/api/parse-jd` | 用 `shared/jdparse.js` 拆 JD：`{text, url}` → `{company, companyType, position, cities, deadline}`（插件收藏岗位用） |
 | GET | `/`、`/web/*` | 网页静态文件 |
 
 删除一条投递时，一并删掉它的 JD 快照。
@@ -239,6 +240,8 @@ job-tracker/
 技术：所有请求都经过 `web/js/api.js`，用相对路径，不写死 localhost；一个很小的 `h()` DOM 辅助函数；集中的 store 负责加载和保存；页面可见时每 4 秒查一次 `/api/version`，切回窗口时也查，有变化就重新加载（有未保存的输入时先不刷新）；先改界面再请求，失败时弹提示并回滚。
 
 ## 7. Chrome 插件（M2）
+
+> 实现时的调整（见 M2 计划）：点选填充改为侧边栏按钮在 mousedown 时阻止默认行为、把文字交给拥有焦点的 frame，不再实时上报焦点；每次操作前重新注入以覆盖后加载的 iframe；JD 拆解走 `POST /api/parse-jd`；不做单独设置页，Tracker 地址在侧边栏底部修改；内容脚本文件为 `content/agent.js` + `content/panel.js`。
 
 **文件**：`manifest.json`、`background.js`（service worker）、`content/lib/fields.js`（字段同义词字典）、`content/lib/match.js`（找标签 + 匹配，纯函数）、`content/lib/fill.js`（写入值）、`content/lib/clip.js`（识别公司 / 岗位 / JD）、`content/content.js`（侧边栏 + 消息）、`content/panel.css`。
 

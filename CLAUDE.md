@@ -56,3 +56,10 @@ curl -s -X PUT $API/applications/<id>/jd -H 'Content-Type: application/json' -d 
 - 绝不存身份证号、护照号、密码；`account` 只放注册用的邮箱或手机号
 - 代码、提交信息、`docs/` 里不写任何个人信息（以后可能公开部署）
 - 保持零依赖、无构建；数据读写只放在 `server/store.js`；业务规则放 `shared/`，网页和服务端共用
+
+## Chrome 插件（extension/）
+
+- 结构：`content/lib/`（fields 字段字典、match 标签匹配、fill 写值、clip 收藏识别）→ `content/agent.js`（每个 frame 的执行者）→ `content/panel.js`（侧边栏）；`bg/handlers.js` 处理消息，`bg/logic.js` 是纯函数
+- 加字段或同义词：改 `content/lib/fields.js`，在 `extension/test/match.test.js` 加用例
+- 测试：`npm test` 包含插件单测；页面行为用 `node extension/test/serve.mjs` 打开 http://127.0.0.1:7320/ 的测试页，在浏览器里执行 `await jtTest.fill()`
+- 用户是「加载已解压的扩展程序」装的：改完插件代码要提醒用户去 chrome://extensions 点重新加载

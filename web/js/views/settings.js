@@ -1,7 +1,7 @@
 // 设置：没动静天数、周目标、时区、导出数据、日历和插件说明、版本信息。
 import { store } from '../store.js';
 import { api } from '../api.js';
-import { h, icon, field, input, select, segmented, attempt, toast, repaintWhenIdle } from '../ui.js';
+import { h, icon, field, input, select, segmented, attempt, toast, repaintWhenIdle, copyText } from '../ui.js';
 import { todayInZone, formatZoned } from '../../shared/time.js';
 
 const TIMEZONES = [
@@ -94,7 +94,14 @@ function build() {
     card('日历',
       h('p', { style: { margin: 0 } }, '在「日程」页可以把所有面试、测评和网申截止订阅到苹果日历。 ',
         h('a', { href: '#/calendar' }, '去日程页'))),
-    card('Chrome 插件',
-      h('p', { class: 'muted', style: { margin: 0 } }, '网申自动填写和一键收藏岗位的插件在下一阶段提供，会直接用「档案」里的内容。')),
+    card('Chrome 插件（秋招助手）',
+      h('ol', { style: { margin: 0, paddingLeft: '20px', lineHeight: 1.9 } },
+        h('li', null, 'Chrome 地址栏打开 chrome://extensions ',
+          h('button', { class: 'btn sm ghost', type: 'button', onClick: () => copyText('chrome://extensions', '地址已复制') }, icon('copy'), '复制')),
+        h('li', null, '打开右上角的「开发者模式」'),
+        h('li', null, '点「加载已解压的扩展程序」，选 job-tracker 里的 extension 文件夹'),
+        h('li', null, '点工具栏的拼图图标，把「秋招助手」固定出来')),
+      h('p', { class: 'muted small', style: { marginBottom: 0 } },
+        '在网申页点插件图标或按 ⌥⇧J 打开侧边栏：一键填写、点选填充、把简历放进上传框、记录投递。插件用的是这里「档案」「简历」「素材库」的内容；Tracker 没启动时也能用上次的缓存填写。')),
     card('关于', about));
 }
