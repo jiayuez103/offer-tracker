@@ -5,6 +5,7 @@ import { createStore, StoreError } from './store.js';
 import { COLLECTIONS, ID_PREFIX } from '../shared/constants.js';
 import { prepareNewApplication, applyApplicationUpdate, validateApplication, newId } from '../shared/domain.js';
 import { buildCalendar } from '../shared/ics.js';
+import { parseJD } from '../shared/jdparse.js';
 import { todayInZone } from '../shared/time.js';
 
 const MIME = {
@@ -231,6 +232,10 @@ export function createApp({ dataDir, rootDir, now = () => new Date() }) {
 
     if (a === 'ping' && m === 'GET' && !b) return send(200, { ok: true, app: 'job-tracker', version: appVersion });
     if (a === 'version' && m === 'GET' && !b) return send(200, { version: store.version() });
+    if (a === 'parse-jd' && m === 'POST' && !b) {
+      const { text = '', url = '' } = await readJson(req);
+      return send(200, parseJD(String(text), String(url), now()));
+    }
     if (a === 'state' && m === 'GET' && !b) {
       return send(200, {
         profile: store.getProfile(),

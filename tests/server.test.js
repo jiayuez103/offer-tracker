@@ -161,3 +161,9 @@ test('写入后 version 变大', async () => {
   const res = await fetch(`${base}/api/settings`, json('PATCH', { weeklyGoal: 9 }));
   assert.ok(Number(res.headers.get('x-data-version')) > v1);
 });
+
+test('解析 JD：复用 shared/jdparse.js', async () => {
+  const res = await fetch(`${base}/api/parse-jd`, json('POST', { text: '岗位：品牌管培生\n工作地点：上海', url: 'https://www.pgcareers.com/job/1' }));
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { company: '宝洁', companyType: '外企', position: '品牌管培生', cities: '上海', deadline: '' });
+});
