@@ -19,6 +19,8 @@
   <label for="en">英文名</label><input id="en">
   <label>手机号码<input id="phone" type="tel"></label>
   <label for="email">电子邮箱</label><input id="email" type="email">
+  <!-- 真实网申常见：只在失去焦点时才重新校验，填上值但不发失焦事件的话红字不会消失 -->
+  <span id="email-error" style="color: #c00">电子邮件不能为空!</span>
   <div id="gender">性别 <label><input type="radio" name="gender" value="m">男</label><label><input type="radio" name="gender" value="f">女</label></div>
   <label for="birth">出生日期</label><input id="birth" type="date">
   <label for="pol">政治面貌</label>
@@ -62,6 +64,12 @@
   <label>上传证件照<input id="photo" type="file" accept="image/*"></label>
   <button type="submit">提交</button>
 </form>
+<script>
+  // 模仿网申常用的「失焦才校验」：input / change 不算，非要 focusout 才清掉红字
+  document.getElementById('email').addEventListener('focusout', (e) => {
+    document.getElementById('email-error').hidden = !!e.target.value.trim();
+  });
+</script>
 <script src="/extension/content/lib/fields.js"></script>
 <script src="/extension/content/lib/match.js"></script>
 <script src="/extension/content/lib/fill.js"></script>

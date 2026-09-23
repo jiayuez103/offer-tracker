@@ -80,6 +80,12 @@
     el.dispatchEvent(new Event('change', { bubbles: true }));
   };
 
+  // 不少网申只在输入框失去焦点时重新校验；填完补发一次，页面上「xx 不能为空」的红字才会消失
+  const fireBlur = (el) => {
+    el.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    el.dispatchEvent(new FocusEvent('blur'));
+  };
+
   /** 原型上的 value setter：绕过 React 在实例上装的值追踪，之后的 input 事件才会被当成用户输入 */
   const setterFor = (el) => {
     const Ctor = { INPUT: HTMLInputElement, TEXTAREA: HTMLTextAreaElement, SELECT: HTMLSelectElement }[el.tagName];
@@ -277,6 +283,7 @@
     JT.setText(el, text);
     // 日期组件要按回车才确认；普通输入框不发，免得触发页面自己的提交逻辑
     if (el.closest(PICKER)) el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+    else fireBlur(el); // 日期组件不发失焦：会把还要填结束日期的面板关掉
     return truncated ? 'truncated' : true;
   };
 
