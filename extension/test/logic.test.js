@@ -8,9 +8,12 @@ test('汇总各 frame 的填写结果', () => {
   const sum = aggregateFill([
     { filled: 3, uncertain: 1, manual: 0, skipped: 2, missing: { work: 1 } },
     null,
-    { filled: 2, uncertain: 0, manual: 1, skipped: 0, missing: { work: 2, education: 1 } },
+    { filled: 2, uncertain: 0, manual: 1, skipped: 0, missing: { work: 2, education: 1 }, todo: [{ label: '开始时间', text: '2025-09' }] },
   ]);
-  assert.deepEqual(sum, { filled: 5, uncertain: 1, manual: 1, skipped: 2, missing: { work: 2, education: 1 }, frames: 2 });
+  assert.deepEqual(sum, {
+    filled: 5, uncertain: 1, manual: 1, skipped: 2, missing: { work: 2, education: 1 },
+    todo: [{ label: '开始时间', text: '2025-09' }], frames: 2,
+  });
 });
 
 test('简历文件优先用 PDF', () => {

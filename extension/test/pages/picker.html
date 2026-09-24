@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>网申 · 只读日期框</title>
+<!-- 招聘系统常见：日期只能点日历选，输入框是 readonly。我们不往里写值（怕页面显示有了、内部状态还是空），
+     改成把该填的值报到侧边栏的「填不进去的 N 项」里，用户照着点日历。 -->
+<style>
+  body{font:15px/1.8 -apple-system,"PingFang SC",sans-serif;max-width:720px;margin:24px auto;padding:0 16px}
+  label{display:block;margin:10px 0}
+  input{width:280px;padding:6px 8px;font:inherit}
+  input[readonly]{background:#f6f6f6;cursor:pointer}
+  h2{font-size:17px;margin-top:28px}
+</style>
+</head>
+<body>
+<h2>教育经历</h2>
+<form>
+  <label>学校名称<input id="school"></label>
+  <label>专业<input id="major"></label>
+  <label>开始时间<input id="edu-start" readonly placeholder="请选择"></label>
+  <label>结束时间<input id="edu-end" readonly placeholder="请选择"></label>
+</form>
+<script src="/extension/content/lib/fields.js"></script>
+<script src="/extension/content/lib/match.js"></script>
+<script src="/extension/content/lib/fill.js"></script>
+<script src="/extension/content/lib/clip.js"></script>
+<script src="/extension/content/agent.js"></script>
+<script src="/extension/test/fixture-data.js"></script>
+<script type="module" src="/extension/test/harness.js"></script>
+</body>
+</html>

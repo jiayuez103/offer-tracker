@@ -41,7 +41,7 @@
     const pageLang = JT.pageLang(document);
     const counters = {};
     const used = {};
-    const summary = { filled: 0, uncertain: 0, manual: 0, skipped: 0, missing: {} };
+    const summary = { filled: 0, uncertain: 0, manual: 0, skipped: 0, missing: {}, todo: [] };
     JT.clearMarks();
 
     for (const control of JT.collectControls(document)) {
@@ -83,6 +83,8 @@
       else if (result === 'truncated' || match.confidence === 'low') status = 'uncertain';
       JT.mark(box, status);
       summary[status] += 1;
+      // 填不进去的（只读日期框这类）把该填的值报上去，省得用户回 Tracker 翻
+      if (!result && summary.todo.length < 12) summary.todo.push({ label: label.slice(0, 20), text: value.text.slice(0, 40) });
     }
 
     for (const k of LISTS) {

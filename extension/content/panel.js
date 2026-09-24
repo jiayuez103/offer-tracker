@@ -344,6 +344,14 @@
     return h('div', { class: 'result' },
       h('div', { class: ['sum', !r.filled && 'muted'] }, parts),
       hint ? h('p', { class: 'hint' }, hint) : null,
+      r.todo && r.todo.length
+        ? h('details', { class: 'todo', open: true },
+          h('summary', null, `填不进去的 ${r.todo.length} 项`),
+          h('p', { class: 'hint' }, '多半是只读的日期框，得你自己点日历。点一下就复制，先点网页上的输入框再点它就能填进去。'),
+          h('div', { class: 'items' }, r.todo.map((t) => h('button', { class: 'item', title: t.text, onMousedown: noDefault, onClick: () => insert(t.text) },
+            h('span', { class: 'k' }, t.label),
+            h('span', { class: 'v' }, t.text)))))
+        : null,
       h('div', { class: 'row' },
         h('span', { class: 'hint' }, '绿框已填 · 蓝框请核对 · 黄框要你来填'),
         h('button', {

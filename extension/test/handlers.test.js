@@ -74,7 +74,7 @@ test('一键填写：先注入脚本，再在所有 frame 执行并汇总', asyn
   ];
   const h = setup({ frames, routes: { 'GET /api/state': STATE } });
   const sum = await h.handlers['fill:all']({ options: { overwrite: true } }, 7);
-  assert.deepEqual(sum, { filled: 7, uncertain: 1, manual: 1, skipped: 0, missing: { work: 1 }, frames: 2 });
+  assert.deepEqual(sum, { filled: 7, uncertain: 1, manual: 1, skipped: 0, missing: { work: 1 }, todo: [], frames: 2 });
   assert.deepEqual(h.calls.scripts[0].files, AGENT_FILES);
   assert.equal(h.calls.scripts[0].target.tabId, 7);
 });

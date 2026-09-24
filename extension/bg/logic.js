@@ -1,12 +1,13 @@
 // 后台用的纯函数：汇总各 frame 的填写结果、挑简历文件、查重、base64。
 
 export function aggregateFill(results) {
-  const total = { filled: 0, uncertain: 0, manual: 0, skipped: 0, missing: {}, frames: 0 };
+  const total = { filled: 0, uncertain: 0, manual: 0, skipped: 0, missing: {}, todo: [], frames: 0 };
   for (const r of results) {
     if (!r) continue;
     total.frames += 1;
     for (const k of ['filled', 'uncertain', 'manual', 'skipped']) total[k] += r[k] || 0;
     for (const [list, n] of Object.entries(r.missing || {})) total.missing[list] = Math.max(total.missing[list] || 0, n);
+    for (const item of r.todo || []) if (total.todo.length < 12) total.todo.push(item);
   }
   return total;
 }
