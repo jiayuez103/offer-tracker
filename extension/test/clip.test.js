@@ -15,6 +15,7 @@ test('清理公司名里的招聘字样', () => {
   assert.equal(JT.cleanCompany('Careers at Example'), 'Example');
   assert.equal(JT.cleanCompany('加入我们 | 示例公司'), '示例公司');
   assert.equal(JT.cleanCompany('Jobsity'), 'Jobsity');
+  assert.equal(JT.cleanCompany('示例公司校园招聘门户'), '示例公司'); // 招聘门户：标题是「公司名 + 校园招聘门户」
 });
 
 test('从页面信息猜公司和岗位', () => {

@@ -2,7 +2,7 @@
 (() => {
   const JT = (globalThis.JT = globalThis.JT || {});
   const SEPARATORS = /\s+[-–—_·•]\s+|\s*[|｜]\s*/;
-  const NOISE_ZH = /(校园招聘|校招|社会招聘|社招|招聘官网|招聘网站|招聘|官网|加入我们)/g;
+  const NOISE_ZH = /(校园招聘|校招|社会招聘|社招|招聘官网|招聘网站|招聘门户|人才门户|招聘|官网|门户|加入我们)/g;
   const NOISE_EN = /\b(careers?\s+at|careers?|jobs?\s+at|jobs?|recruiting|recruitment|hiring|join us)\b/gi; // 英文按整词，不误删 Jobsity
   const EDGE = /^[\s|｜\-–—_·•:：]+|[\s|｜\-–—_·•:：]+$/g;
 

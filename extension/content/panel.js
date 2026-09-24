@@ -104,6 +104,7 @@
   let tab = 'fill';
   let minimized = false;
   let clip = null;
+  let detecting = null;
   const ui = { lang: 'auto', overwrite: false, reverse: false, resumeId: '', query: '', result: null, attach: '' };
 
   function h(tag, props, ...children) {
@@ -199,6 +200,8 @@
       state = { online: false, error: e.message, profile: null, answers: [], resumes: [] };
     }
     render();
+    // 面板刚打开、状态还没回来就切到「记录投递」的话，切页签时那次识别会被跳过，这里补上
+    if (tab === 'clip' && !clip && state.online) detect();
   }
 
   // ---------- 整体 ----------
@@ -437,7 +440,13 @@
   }
 
   // ---------- 记录投递 ----------
-  async function detect() {
+  /** 同一时间只识别一次：切页签和加载完成可能同时触发 */
+  function detect() {
+    if (!detecting) detecting = runDetect().finally(() => { detecting = null; });
+    return detecting;
+  }
+
+  async function runDetect() {
     const info = window.__jtAgent ? window.__jtAgent.pageInfo() : { url: location.href, text: '', company: '', position: '' };
     let text = info.text || '';
     try {
@@ -447,10 +456,11 @@
       // 忽略
     }
     let parsed = {};
+    let parseError = '';
     try {
       parsed = await send({ type: 'clip:parse', text, url: info.url });
-    } catch {
-      // 出错时只用页面信息
+    } catch (e) {
+      parseError = e.message || '识别失败'; // 只用页面信息，但要让用户看见，别以为是页面认不出
     }
     // 官网域名表里认出的公司名最准；否则用页面标题里的，最后才用 ATS 代号
     const company = parsed.companyType ? parsed.company : info.company || parsed.company || '';
@@ -472,7 +482,7 @@
     } catch {
       // 忽略
     }
-    clip = { record, text, dup, saved: null };
+    clip = { record, text, dup, saved: null, parseError };
     render();
   }
 
@@ -545,6 +555,9 @@
     const resumes = state.resumes || [];
     return [
       clip.dup ? dupView(clip.dup) : null,
+      clip.parseError
+        ? h('div', { class: 'dup' }, `自动识别没跑成功：${clip.parseError}。Tracker 可能是旧版本在跑，双击「停止Tracker.command」再「启动Tracker.command」，然后点「重新识别」。下面的内容先手动填也行。`)
+        : null,
       field('公司', text('company', '如：雀巢')),
       field('岗位', text('position', '如：Marketing MT')),
       h('div', { class: 'two' },
