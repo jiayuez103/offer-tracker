@@ -31,7 +31,7 @@
 
 在 `tests/domain.test.js` 加：
 
-1. `eventMode({type:'测评'})` → `'deadline'`；`eventMode({type:'AI面'})` → `'meeting'`；`eventMode({type:'AI面', mode:'deadline'})` → `'deadline'`（老数据按类型推断，新数据以 `mode` 为准）
+1. `eventMode({type:'测评'})` → `'deadline'`；`eventMode({type:'面试'})` → `'meeting'`；`eventMode({type:'AI面'})` → `'deadline'`（沿用 `TEST_TYPES`）；`eventMode({type:'AI面', mode:'meeting'})` → `'meeting'`（新数据以 `mode` 为准）
 2. 截止型事件剩 5 天：`actionItems` 有一条 `kind:'due'`、文案含「还剩 5 天」，且 `rank` 与网申截止同级（2）
 3. 剩 9 小时：文案含「还剩 9 小时」，`rank` 0
 4. 已过期 2 天且 `done:false`：文案含「已过期 2 天」，`rank` 0

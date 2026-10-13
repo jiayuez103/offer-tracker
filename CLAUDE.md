@@ -5,6 +5,7 @@
 ## 运行与测试
 
 - 服务：`http://127.0.0.1:7317`（双击 `启动Tracker.command` 或 `npm start`）；`curl -s 127.0.0.1:7317/api/ping` 判断是否在运行
+- **改了 `server/` 或 `shared/` 的代码必须重启服务**（`./停止Tracker.command && ./启动Tracker.command`），否则跑的还是旧代码：接口 404、ICS 少闹钟这类「明明改了却没生效」都是这个原因。网页和插件的代码不用重启，刷新页面即可
 - 测试：`npm test`
 
 ## 数据（`data/`，含个人信息，已被 git 忽略）
