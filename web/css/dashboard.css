@@ -108,3 +108,12 @@
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .dash-grid { grid-template-columns: 1fr; }
 }
+
+/* 今明两天：进页面第一眼就看见的一条 */
+.digest { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--accent-soft); border-radius: var(--radius); background: var(--accent-soft); }
+.digest-label { display: inline-flex; align-items: center; gap: 6px; flex: none; color: var(--accent-text); font-weight: 600; font-size: 13px; }
+.digest-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.digest-item { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 10px; border: 1px solid transparent; border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; }
+.digest-item:hover { border-color: var(--accent); }
+.digest-item span { color: var(--text-2); }
+.digest-item.kind-overdue span, .digest-item.kind-deadline span { color: var(--danger); }

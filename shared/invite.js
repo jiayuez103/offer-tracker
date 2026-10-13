@@ -66,7 +66,13 @@ const snippet = (text, index, length) => {
   const head = text.slice(Math.max(0, index - 40), index);
   const cut = Math.max(head.lastIndexOf('。'), head.lastIndexOf('\n'), head.lastIndexOf('，'), head.lastIndexOf('. '));
   const start = index - (head.length - (cut + 1));
-  return text.slice(start, index + length + 8).replace(/\s+/g, ' ').trim().slice(0, 60);
+  const out = text.slice(start, index + length + 8).replace(/\s+/g, ' ').trim().slice(0, 60);
+  // 尾巴别拖着半截链接或下一句的开头：句号留着，逗号连同后面的残句一起去掉
+  return out
+    .replace(/\s*https?:?.*$/i, '')
+    .replace(/([。.；;])\s*\S*$/, '$1')
+    .replace(/[，,]\s*\S*$/, '')
+    .trim();
 };
 
 /** 从收到的次日起数 n 个工作日，落在当天 18:00 */

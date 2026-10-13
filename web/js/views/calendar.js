@@ -1,7 +1,7 @@
 // 日程：按天列出测评、笔试、面试和网申截止（按本地时区分组，右侧显示目标时区时间）；
 // 可以直接勾选完成；右侧是订阅到苹果日历的入口。
 import { store } from '../store.js';
-import { h, icon, ensureCss, openApp, attempt, safeUrl, copyText, emptyState } from '../ui.js';
+import { h, icon, ensureCss, openApp, openInvite, attempt, safeUrl, copyText, emptyState } from '../ui.js';
 import { calendarUrl } from '../api.js';
 import { isClosed } from '../../shared/domain.js';
 import { todayInZone, formatZoned, isoToLocalInput, zonedToISO, deadlineISO, diffDays } from '../../shared/time.js';
@@ -65,6 +65,7 @@ function build(showPast, setShowPast) {
     h('label', { class: 'row small' },
       h('input', { type: 'checkbox', checked: showPast, onChange: (e) => setShowPast(e.target.checked) }),
       '显示过去 30 天'),
+    h('button', { class: 'btn sm', type: 'button', onClick: openInvite }, icon('message'), '粘贴邀请'),
     h('span', { class: 'spacer' }),
     h('span', { class: 'muted small' }, `按${settings.homeTzLabel}时间分组 · 右侧是${settings.targetTzLabel}时间`));
   const list = rows.length

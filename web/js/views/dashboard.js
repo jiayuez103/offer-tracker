@@ -1,6 +1,6 @@
 // 概览：数字卡片、需要处理、未来 7 天、投递漏斗、每周投递、赛道对比。
 import { store } from '../store.js';
-import { h, icon, ensureCss, openApp, openNewApp } from '../ui.js';
+import { h, icon, ensureCss, openApp, openNewApp, openInvite } from '../ui.js';
 import { STAGE_LABEL, TRACKS } from '../../shared/constants.js';
 import { actionItems, funnel, weeklyApplied, stageIndex, isClosed } from '../../shared/domain.js';
 import { todayInZone, formatZoned, isoToLocalInput, zonedToISO, deadlineISO, addDays, diffDays } from '../../shared/time.js';
@@ -68,6 +68,7 @@ function build() {
   const now = new Date();
   const today = todayInZone(settings.homeTz, now);
   return h('div', { class: 'dash' },
+    digestBar(apps, settings, now),
     kpiRow(apps, settings, today),
     h('div', { class: 'dash-grid' },
       h('div', { class: 'dash-col' }, actionCard(apps, settings, now), agendaCard(apps, settings, now)),
@@ -84,6 +85,34 @@ function welcome() {
     h('div', { class: 'row' },
       h('button', { class: 'btn primary', type: 'button', onClick: () => openNewApp() }, icon('plus'), '新建投递'),
       h('a', { class: 'btn', href: '#/profile' }, '去看档案')));
+}
+
+// ---------- 今明两天 ----------
+const DIGEST_KINDS = new Set(['test', 'meeting', 'deadline', 'overdue']);
+
+/** 今明两天真正要动手的事；没有就不渲染这一条 */
+function digestBar(apps, settings, now) {
+  const limit = now.getTime() + 2 * 86400000;
+  const items = actionItems(apps, settings, now).filter((it) => {
+    if (!DIGEST_KINDS.has(it.kind)) return false;
+    if (!it.event) return it.kind !== 'overdue'; // 网申截止：只留还没过期的
+    const at = Date.parse(it.event.at);
+    return at >= now.getTime() && at <= limit;
+  });
+  const paste = h('button', { class: 'btn sm', type: 'button', onClick: openInvite }, icon('message'), '粘贴邀请');
+  if (!items.length) return null;
+  return h('section', { class: 'digest' },
+    h('span', { class: 'digest-label' }, icon('clock'), '今明两天'),
+    h('ul', { class: 'digest-list' }, items.map((it) => h('li', null,
+      h('button', {
+        type: 'button',
+        class: `digest-item kind-${it.kind}`,
+        onClick: () => openApp(it.app.id, { tab: it.event ? 'events' : 'info' }),
+      },
+      h('b', null, it.app.company || it.app.position || '未命名'),
+      h('span', null, it.text))))),
+    h('span', { class: 'spacer' }),
+    paste);
 }
 
 // ---------- 数字卡片 ----------

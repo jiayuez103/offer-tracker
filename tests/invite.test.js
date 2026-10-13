@@ -109,3 +109,8 @@ test('依据片段从整句开始', () => {
   const r = parse('本次 AI 面试预计用时 30 分钟。请在收到本邮件后的5天内完成面试，逾期失效。');
   assert.ok(r.basis.startsWith('请在收到'), r.basis);
 });
+
+test('依据片段不拖着链接尾巴', () => {
+  const r = parse('请在三个工作日内完成。\nhttps://assess.example.com/t/1');
+  assert.equal(r.basis, '请在三个工作日内完成。');
+});
