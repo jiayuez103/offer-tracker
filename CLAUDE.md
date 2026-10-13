@@ -41,6 +41,14 @@ curl -s -X PUT $API/applications/<id>/jd -H 'Content-Type: application/json' -d 
   "tz": "Asia/Shanghai", "durationMin": 60, "location": "", "done": false, "review": null }
 ```
 
+测评 / 笔试 / AI 面这类「在某个时间之前自己找时间做完」的，再加三个字段（见 `shared/invite.js` 和 M3 设计文档）：
+
+```json
+{ "mode": "deadline", "windowStart": "<收到邀请的时刻 UTC ISO>", "basis": "请在收到本邮件后的5天内完成面试" }
+```
+
+`mode` 缺省按类型推断（`测评`/`笔试`/`AI面` 是 `deadline`，其余是 `meeting`）。截止型事件在概览里一直显示倒计时直到 `done`，日历会响两次闹钟。用户发来测评邀请邮件时，用 `parseInvite()` 算截止时间，别自己心算。
+
 **服务没运行时**可以直接改 JSON，但必须自己做到服务会做的事：
 
 - 新 id：`<前缀>_<10 位 [0-9a-z]>`，前缀 `app` / `evt` / `tl` / `ans` / `res` / `edu` / `work` …（`shared/domain.js` 的 `newId`）

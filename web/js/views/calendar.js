@@ -128,7 +128,7 @@ function subscribeCard(settings) {
   return h('aside', { class: 'card cal-side' },
     h('div', { class: 'card-head' }, h('h3', null, '同步到苹果日历')),
     h('div', { class: 'card-body' },
-      h('p', { class: 'small' }, '订阅以后，新加的日程会自动出现在日历里：面试前 1 小时提醒，测评和网申截止前 1 天提醒。'),
+      h('p', { class: 'small' }, '订阅以后，新加的日程会自动出现在日历里：面试前 1 小时提醒；测评、笔试这类有截止时间的响两次 —— 提前 1 天，截止当天早上再响一次。'),
       h('div', { class: 'row wrap' },
         h('a', { class: 'btn primary', href: webcal }, icon('calendar'), '订阅'),
         h('a', { class: 'btn', href: httpUrl, download: 'job-tracker.ics' }, icon('download'), '下载 .ics'),
@@ -136,5 +136,6 @@ function subscribeCard(settings) {
       h('ul', { class: 'small muted cal-tips' },
         h('li', null, '订阅时把「移除：提醒」取消勾选，不然日历不会提醒。'),
         h('li', null, '「自动刷新」选每 15 分钟或每小时。Tracker 没启动时日历只是暂停更新，不会丢数据。'),
+        h('li', null, '手机上收不到：订阅地址是本机地址，iPhone 连不上。要让手机也提醒，点「下载 .ics」，把文件用邮件发给自己，在 iPhone 上打开并加进 iCloud 日历（之后有新日程要再发一次）。'),
         h('li', null, `日历按本机时区显示（现在是${settings.homeTzLabel}）。`))));
 }
