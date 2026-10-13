@@ -1,6 +1,7 @@
 // 生成 iCalendar（.ics），给苹果日历订阅或导入。时间一律用 UTC。
-import { INTERVIEW_EVENT_TYPES, DEFAULT_SETTINGS } from './constants.js';
-import { deadlineISO } from './time.js';
+import { DEFAULT_SETTINGS } from './constants.js';
+import { deadlineISO, isoToLocalInput, zonedToISO } from './time.js';
+import { eventMode } from './domain.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const encoder = new TextEncoder();
@@ -37,7 +38,15 @@ export function foldLine(line) {
   return out.join('\r\n ');
 }
 
-function vevent({ uid, stamp, start, end, summary, description, location, url, alarmMinutes }) {
+/** 截止型的两次闹钟：提前 1 天，再加截止当天早上 9 点；截止本身就在 9 点前就改成提前 2 小时 */
+export function deadlineAlarms(start, timeZone) {
+  const day = isoToLocalInput(start.toISOString(), timeZone).slice(0, 10);
+  const morning = Date.parse(zonedToISO(`${day}T09:00`, timeZone));
+  const minutes = Math.round((start.getTime() - morning) / 60000);
+  return [1440, minutes > 0 && minutes < 1440 ? minutes : 120];
+}
+
+function vevent({ uid, stamp, start, end, summary, description, location, url, alarms }) {
   const lines = [
     'BEGIN:VEVENT',
     `UID:${uid}`,
@@ -49,7 +58,7 @@ function vevent({ uid, stamp, start, end, summary, description, location, url, a
   if (description) lines.push(`DESCRIPTION:${escapeText(description)}`);
   if (location) lines.push(`LOCATION:${escapeText(location)}`);
   if (url) lines.push(`URL:${url}`);
-  lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escapeText(summary)}`, `TRIGGER:-PT${alarmMinutes}M`, 'END:VALARM');
+  for (const m of alarms) lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${escapeText(summary)}`, `TRIGGER:-PT${m}M`, 'END:VALARM');
   lines.push('END:VEVENT');
   return lines;
 }
@@ -76,7 +85,7 @@ export function buildCalendar(apps, settings = DEFAULT_SETTINGS, now = new Date(
         description: [ev.location, app.nextStep && `下一步：${app.nextStep}`].filter(Boolean).join('\n'),
         location: isUrl(ev.location) ? '' : ev.location,
         url: isUrl(ev.location) ? ev.location : '',
-        alarmMinutes: INTERVIEW_EVENT_TYPES.includes(ev.type) ? 60 : 24 * 60,
+        alarms: eventMode(ev) === 'deadline' ? deadlineAlarms(start, s.homeTz) : [60],
       }));
     }
     if (app.deadline && app.stage === 'wishlist' && app.status === 'active') {
@@ -91,7 +100,7 @@ export function buildCalendar(apps, settings = DEFAULT_SETTINGS, now = new Date(
         description: link,
         location: '',
         url: link,
-        alarmMinutes: 24 * 60,
+        alarms: [24 * 60],
       }));
     }
   }

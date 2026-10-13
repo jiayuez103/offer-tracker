@@ -43,3 +43,31 @@ test('生成日历：日程 + 待投递岗位的截止日', () => {
   assert.doesNotMatch(ics, /已放弃/);
   assert.doesNotMatch(ics, /deadline-app_1/); // 已经投了，不再提醒截止
 });
+
+const oneEvent = (ev) => buildCalendar(
+  [{ id: 'app_1', company: '示例公司', position: '管培生', stage: 'assessment', status: 'active', events: [ev] }],
+  DEFAULT_SETTINGS,
+  NOW,
+);
+const triggers = (ics) => (ics.match(/TRIGGER:-PT\d+M/g) || []);
+
+test('截止型日程响两次：提前 1 天 + 当天早上 9 点', () => {
+  // 洛杉矶 10/14 14:00 截止 → 当天 9:00 距截止 300 分钟
+  const ics = oneEvent({ id: 'evt_1', type: '测评', at: '2026-10-14T14:00:00-07:00', durationMin: 60, done: false });
+  assert.deepEqual(triggers(ics), ['TRIGGER:-PT1440M', 'TRIGGER:-PT300M']);
+});
+
+test('截止时间在凌晨时，第二次闹钟退化成提前 2 小时', () => {
+  const ics = oneEvent({ id: 'evt_1', type: 'AI面', at: '2026-10-17T02:42:00-07:00', durationMin: 30, done: false });
+  assert.deepEqual(triggers(ics), ['TRIGGER:-PT1440M', 'TRIGGER:-PT120M']);
+});
+
+test('会议型日程还是只响一次', () => {
+  const ics = oneEvent({ id: 'evt_1', type: '面试', at: '2026-10-14T14:00:00-07:00', durationMin: 60, done: false });
+  assert.deepEqual(triggers(ics), ['TRIGGER:-PT60M']);
+});
+
+test('约好时间的 AI 面可以设成会议型', () => {
+  const ics = oneEvent({ id: 'evt_1', type: 'AI面', mode: 'meeting', at: '2026-10-14T14:00:00-07:00', durationMin: 30, done: false });
+  assert.deepEqual(triggers(ics), ['TRIGGER:-PT60M']);
+});
