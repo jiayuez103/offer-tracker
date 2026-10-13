@@ -192,9 +192,15 @@ const TEST_TYPES = new Set(['测评', '笔试', 'AI面']);
 const MEETING_TYPES = new Set(['群面', '面试', '终面', 'HR面']);
 
 /**
+ * 截止型（deadline）= 在这个时间之前自己找时间做完；会议型（meeting）= 准时出席。
+ * 老数据没有 mode 字段，按类型推断。
+ */
+export const eventMode = (ev) => ev.mode || (TEST_TYPES.has(ev.type) ? 'deadline' : 'meeting');
+
+/**
  * 概览页的「需要处理」清单，按紧急程度排序。
- * kind：test（48 小时内的测评/笔试）| meeting（今明两天的面试）| deadline（3 天内截止还没投）
- *      | review（面完没写复盘）| stale（没动静）| overdue（截止已过还没投）
+ * kind：test（还没做的测评/笔试/AI面，一直显示）| meeting（今明两天的面试）| deadline（3 天内截止还没投）
+ *      | review（面完没写复盘）| stale（没动静）| overdue（截止已过还没投 / 测评已过期）
  */
 export function actionItems(apps, settings = DEFAULT_SETTINGS, now = new Date()) {
   const s = { ...DEFAULT_SETTINGS, ...settings };
@@ -211,9 +217,18 @@ export function actionItems(apps, settings = DEFAULT_SETTINGS, now = new Date())
     for (const ev of app.events || []) {
       const at = Date.parse(ev.at);
       if (!at) continue;
-      if (!ev.done && at >= nowMs && TEST_TYPES.has(ev.type) && at - nowMs <= 48 * HOUR) {
-        const hours = Math.max(1, Math.round((at - nowMs) / HOUR));
-        items.push({ kind: 'test', rank: 0, app, event: ev, text: `${ev.type}还剩 ${hours} 小时` });
+      // 截止型：邀请往往提前好几天到，所以从录入起就一直提醒，直到勾了完成
+      if (!ev.done && eventMode(ev) === 'deadline') {
+        const left = at - nowMs;
+        const window = ev.windowStart ? Math.max(1, Math.round((at - Date.parse(ev.windowStart)) / DAY)) : 0;
+        const tail = window ? `（窗口共 ${window} 天）` : '';
+        if (left < 0) {
+          items.push({ kind: 'overdue', rank: 5, app, event: ev, text: `${ev.type}已过期 ${Math.max(1, Math.round(-left / DAY))} 天` });
+        } else if (left <= 48 * HOUR) {
+          items.push({ kind: 'test', rank: 0, app, event: ev, text: `${ev.type}还剩 ${Math.max(1, Math.round(left / HOUR))} 小时${tail}` });
+        } else {
+          items.push({ kind: 'test', rank: 2, app, event: ev, text: `${ev.type}还剩 ${Math.round(left / DAY)} 天${tail}` });
+        }
       }
       if (!ev.done && at >= nowMs && MEETING_TYPES.has(ev.type)) {
         const days = diffDays(homeToday, todayInZone(s.homeTz, new Date(at)));

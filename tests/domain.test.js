@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   newId, asBi, emptyProfile, normalizeProfile, PROFILE_ENTRY, PROFILE_LISTS,
   prepareNewApplication, applyApplicationUpdate, validateApplication,
-  lastProgressAt, isStale, nextEvent, funnel, weeklyApplied, actionItems, textStats,
+  lastProgressAt, isStale, nextEvent, funnel, weeklyApplied, actionItems, textStats, eventMode,
 } from '../shared/domain.js';
 import { DEFAULT_SETTINGS } from '../shared/constants.js';
 
@@ -169,4 +169,28 @@ test('字数统计', () => {
   assert.deepEqual(textStats('你好，世界'), { chars: 5, words: 0 });
   assert.deepEqual(textStats("I don't know well-known things"), { chars: 26, words: 5 });
   assert.deepEqual(textStats(''), { chars: 0, words: 0 });
+});
+
+test('事件分截止型和会议型', () => {
+  assert.equal(eventMode({ type: '测评' }), 'deadline');
+  assert.equal(eventMode({ type: '笔试' }), 'deadline');
+  assert.equal(eventMode({ type: 'AI面' }), 'deadline'); // 默认是「窗口内自己找时间做」
+  assert.equal(eventMode({ type: '面试' }), 'meeting');
+  assert.equal(eventMode({ type: 'AI面', mode: 'meeting' }), 'meeting'); // 约好了具体时间
+});
+
+test('截止型日程一直提醒，直到做完', () => {
+  const apps = [
+    appliedApp({ company: '远', events: [{ id: 'a', type: '测评', at: hoursLater(120), done: false, windowStart: NOW.toISOString() }] }),
+    appliedApp({ company: '近', events: [{ id: 'b', type: 'AI面', at: hoursLater(9), done: false }] }),
+    appliedApp({ company: '过期', events: [{ id: 'c', type: '测评', at: daysAgo(2), done: false }] }),
+    appliedApp({ company: '做完了', events: [{ id: 'd', type: '测评', at: daysAgo(2), done: true }] }),
+  ];
+  const items = actionItems(apps, DEFAULT_SETTINGS, NOW).filter((i) => i.event);
+  assert.deepEqual(items.map((i) => i.app.company), ['近', '远', '过期']);
+  assert.equal(items[0].text, 'AI面还剩 9 小时');
+  assert.equal(items[1].text, '测评还剩 5 天（窗口共 5 天）');
+  assert.equal(items[2].text, '测评已过期 2 天');
+  assert.equal(items[0].kind, 'test');
+  assert.equal(items[2].kind, 'overdue');
 });
