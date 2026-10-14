@@ -28,7 +28,7 @@
 API=http://127.0.0.1:7317/api
 # 新建投递
 curl -s -X POST $API/applications -H 'Content-Type: application/json' \
-  -d '{"company":"雀巢","position":"Marketing MT","track":"市场","companyType":"外企","stage":"applied"}'
+  -d '{"company":"示例公司","position":"Marketing MT","track":"市场","companyType":"外企","stage":"applied"}'
 # 改阶段 / 状态
 curl -s -X PATCH $API/applications/<id> -H 'Content-Type: application/json' -d '{"stage":"interview"}'
 # 保存 JD 快照
