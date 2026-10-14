@@ -88,3 +88,18 @@ window.jtTest = {
   },
 };
 document.documentElement.dataset.harness = 'ready';
+
+// 截图 / 调试用：?panel=1 自动打开侧边栏，&fill=1 再跑一次一键填写
+const params = new URLSearchParams(location.search);
+if (params.get('panel') === '1') {
+  await window.jtTest.openPanel();
+  if (params.get('fill') === '1') {
+    // 面板要等状态回来才渲染出按钮
+    for (let i = 0; i < 40; i += 1) {
+      const root = window.jtTest.panelRoot();
+      const btn = root && [...root.querySelectorAll('button')].find((b) => b.textContent.includes('一键填写'));
+      if (btn) { btn.click(); break; }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+}
