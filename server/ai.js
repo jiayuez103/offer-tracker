@@ -2,7 +2,7 @@
 // 密钥只在这里读，不往上层返回，也不写日志。
 import crypto from 'node:crypto';
 import { buildRequest, readText, extractJson, parseStreamChunk } from '../shared/llm.js';
-import { systemPrompt, diagnosePrompt, chatMessages } from '../shared/aiprompt.js';
+import { systemPrompt, diagnosePrompt, chatMessages, rewriteWarnings } from '../shared/aiprompt.js';
 
 const TIMEOUT_MS = 60000;
 const MAX_CHAT = 40;
@@ -96,14 +96,23 @@ export function createAi({ store, fetchImpl = fetch }) {
       json: true,
     });
     const parsed = extractJson(text);
-    const ids = new Set([...(store.getProfile().education || []), ...(store.getProfile().work || []), ...(store.getProfile().projects || []), ...(store.getProfile().activities || [])].map((x) => x.id));
+    const profile = store.getProfile();
+    const entries = new Map([...(profile.education || []), ...(profile.work || []), ...(profile.projects || []), ...(profile.activities || [])].map((x) => [x.id, x]));
+    // 这段经历的职位和全文：判断「独立」「负责人」这类说法时要看得到它们
+    const contextOf = (id) => {
+      const e = entries.get(id);
+      return e ? JSON.stringify([e.title, e.role, e.company, e.org, e.description]) : '';
+    };
     const diagnosis = parsed
       ? {
         summary: String(parsed.summary || ''),
         requirements: Array.isArray(parsed.requirements) ? parsed.requirements.slice(0, 20) : [],
         keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 20) : [],
         // 对不上档案条目的改写建议直接丢掉：多半是模型自己编的
-        rewrites: (Array.isArray(parsed.rewrites) ? parsed.rewrites : []).filter((r) => r && ids.has(r.target)).slice(0, 10),
+        rewrites: (Array.isArray(parsed.rewrites) ? parsed.rewrites : [])
+          .filter((r) => r && entries.has(r.target))
+          .slice(0, 10)
+          .map((r) => ({ ...r, warnings: rewriteWarnings({ original: r.original, rewrite: r.rewrite, context: contextOf(r.target) }) })),
       }
       : { summary: text.slice(0, 2000), requirements: [], keywords: [], rewrites: [], raw: true };
 

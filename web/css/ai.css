@@ -24,3 +24,6 @@
 .ai-msg.err { color: var(--danger); }
 .ai-input { display: flex; gap: 8px; align-items: flex-end; }
 .ai-input textarea { flex: 1; }
+.ai-warn { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; color: var(--warn); font-size: 12px; }
+.ai-warn li { display: flex; align-items: center; gap: 5px; }
+.ai-warn .icon { width: 13px; height: 13px; }

@@ -49,7 +49,10 @@ export function aiPane(app, { onNeedJd } = {}) {
         h('button', { class: 'btn sm ghost', type: 'button', onClick: () => copyText(r.rewrite, '改写内容已复制') }, icon('copy'), '复制')),
       h('div', { class: 'ai-before' }, r.original || ''),
       h('div', { class: 'ai-after' }, r.rewrite || ''),
-      r.why ? h('p', { class: 'muted small' }, r.why) : null);
+      r.why ? h('p', { class: 'muted small' }, r.why) : null,
+      (r.warnings || []).length
+        ? h('ul', { class: 'ai-warn' }, r.warnings.map((w) => h('li', null, icon('alert'), w)))
+        : null);
   }
 
   function renderBody() {

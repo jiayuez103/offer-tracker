@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resumeForAI, systemPrompt, diagnosePrompt, chatMessages } from '../shared/aiprompt.js';
+import { resumeForAI, systemPrompt, diagnosePrompt, chatMessages, rewriteWarnings } from '../shared/aiprompt.js';
 
 const profile = {
   basic: {
@@ -47,4 +47,19 @@ test('对话只带最近若干轮', () => {
   assert.ok(msgs.length < history.length, '不该把整段历史都发出去');
   assert.equal(msgs[msgs.length - 1].content, '再短一点');
   assert.match(msgs[0].content, /JD 正文/);
+});
+
+test('改写建议的机器检查', () => {
+  // 客户经理说自己对接客户 —— 职责之内，不该报警
+  assert.deepEqual(rewriteWarnings({
+    original: '主导客户小红书账号从 0 到 1 搭建',
+    rewrite: '作为客户方对接人主导小红书账号从 0 到 1 搭建',
+    context: '客户经理 Account Manager',
+  }), []);
+  // 凭空加「独立」
+  assert.match(rewriteWarnings({ original: '主导 320+ 样本客户分层研究', rewrite: '独立主导 320+ 样本客户分层研究' })[0], /独立/);
+  // 结尾塞自我评价
+  assert.match(rewriteWarnings({ original: '完成 A', rewrite: '完成 A，体现端到端项目负责能力' }).join(), /自我评价/);
+  // 越改越长
+  assert.match(rewriteWarnings({ original: '完成用户访谈', rewrite: '完成用户访谈并围绕消费者洞察输出结构化结论与后续建议' }).join(), /长/);
 });

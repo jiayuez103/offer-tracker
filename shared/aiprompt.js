@@ -36,6 +36,9 @@ export function systemPrompt({ forbidden = [] } = {}) {
     '- 只能改措辞、顺序和侧重点。不得新增没有发生过的事实、公司、职位、时间、项目。',
     '- 数字只能沿用候选人原文里已有的。不得新造数字，也不得把已有数字改大。',
     '- 每条改写建议都要对应到档案里某条经历的 id，对不上就不要给这条建议。',
+    '- 不得夸大角色：原文和这段经历没体现的「独立」「全权」「唯一」「负责人」「牵头」不许加。职位本身就包含的职责（比如客户经理对接客户）可以写。',
+    '- bullet 只写做了什么、怎么做、结果如何。不得在结尾加「体现了……能力」「展现了……」这类自我评价。',
+    '- 改写后不要明显长于原文（最多长两三成），中文控制在两行以内。',
     '- 中文经历用中文改，英文经历用英文改，不要混着写。',
     '- 不确定的地方直说「这里需要你自己确认」，不要圆场。',
   ];
@@ -70,8 +73,29 @@ export function diagnosePrompt({ jd, profile, position = '' }) {
     '  "rewrites": [{"target": "档案条目的 id", "original": "原文 bullet", "rewrite": "改写后", "why": "为什么这么改"}]',
     '}',
     '',
-    'requirements 覆盖 JD 的主要要求，按重要性排序；rewrites 给 3-6 条最值得改的。',
+    'requirements 覆盖 JD 的主要要求，按重要性排序；同一条要求只列一次，意思相近的合并成一条。',
+    'rewrites 给 3-6 条最值得改的。',
   ].join('\n');
+}
+
+// 模型嘴上答应、手上照犯，所以再做一道机器检查。
+// 只盯「独占性」的说法：职责范围内的描述（比如客户经理说自己对接客户）不算问题，
+// 所以判断时要带上这段经历的职位和全文，不是只看被改的那一句。
+const CLAIM_WORDS = ['独立', '全权', '唯一', '负责人', '牵头'];
+
+/** 对单条改写建议的客观检查；context 是这段经历的职位 + 全文 */
+export function rewriteWarnings({ original = '', rewrite = '', context = '' } = {}) {
+  const out = [];
+  const o = String(original);
+  const r = String(rewrite);
+  const support = `${o}${context}`;
+  // 比例和绝对增量都超了才算「变啰嗦」：短句多几个字很正常
+  if (o && r.length > o.length * 1.3 && r.length - o.length >= 15) out.push('比原文长了不少，当心为了塞关键词变啰嗦');
+  for (const w of CLAIM_WORDS) {
+    if (r.includes(w) && !support.includes(w)) out.push(`加了原文没有的「${w}」，确认属实再用`);
+  }
+  if (/体现|展现|彰显/.test(r) && !/体现|展现|彰显/.test(support)) out.push('结尾像自我评价，简历 bullet 只写做了什么和结果');
+  return out;
 }
 
 /** 对话上下文：背景一条 + 最近若干轮 + 这次的问题 */
