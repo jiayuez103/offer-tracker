@@ -1,7 +1,7 @@
 // 设置：没动静天数、周目标、时区、导出数据、日历和插件说明、版本信息。
 import { store } from '../store.js';
 import { api } from '../api.js';
-import { h, icon, field, input, select, segmented, attempt, toast, repaintWhenIdle, copyText } from '../ui.js';
+import { h, icon, field, input, textarea, select, segmented, attempt, toast, repaintWhenIdle, copyText } from '../ui.js';
 import { todayInZone, formatZoned } from '../../shared/time.js';
 
 const TIMEZONES = [
@@ -103,5 +103,62 @@ function build() {
         h('li', null, '点工具栏的拼图图标，把「秋招助手」固定出来')),
       h('p', { class: 'muted small', style: { marginBottom: 0 } },
         '在网申页点插件图标或按 ⌥⇧J 打开侧边栏：一键填写、点选填充、把简历放进上传框、记录投递。插件用的是这里「档案」「简历」「素材库」的内容；Tracker 没启动时也能用上次的缓存填写。')),
+    aiCard(s, save),
     card('关于', about));
+}
+
+const AI_FORMATS = [
+  { value: 'openai', label: 'OpenAI 兼容' },
+  { value: 'anthropic', label: 'Anthropic' },
+];
+
+/** 模型服务由用户自己配；key 存在本机，页面只知道配没配 */
+function aiCard(s, save) {
+  const ai = s.ai || {};
+  const result = h('p', { class: 'muted small', style: { margin: 0 } });
+  const keyInput = input({
+    type: 'password',
+    placeholder: ai.hasKey ? '已保存，留空就不改' : '本地模型可以留空',
+    onChange: (v) => { if (v.trim()) save({ ai: { apiKey: v.trim() } }); },
+  });
+  const testBtn = h('button', { class: 'btn', type: 'button' }, icon('refresh'), '测试连接');
+  testBtn.onclick = async () => {
+    testBtn.disabled = true;
+    result.textContent = '正在连接…';
+    result.classList.remove('err');
+    try {
+      const r = await api.post('/api/ai/test', {});
+      result.textContent = `连上了：${r.model} 回复「${r.reply}」`;
+    } catch (e) {
+      result.textContent = e.message;
+      result.classList.add('err');
+    } finally {
+      testBtn.disabled = false;
+    }
+  };
+  return card('AI 服务（改简历用）',
+    h('p', { class: 'muted small', style: { marginTop: 0 } },
+      '用你自己的模型服务。填好之后，每条投递的详情里会多一个「AI」页，按这条 JD 给出匹配诊断和改写建议。'),
+    h('div', { class: 'form-grid' },
+      field('启用', h('label', { class: 'row small' },
+        h('input', { type: 'checkbox', checked: !!ai.enabled, onChange: (e) => save({ ai: { enabled: e.target.checked } }) }),
+        '开启后才会调用模型'), { tag: 'div' }),
+      field('接口格式', segmented(AI_FORMATS, ai.format || 'openai', (v) => save({ ai: { format: v } })), { tag: 'div' }),
+      field('服务地址', input({ value: ai.baseUrl || '', placeholder: 'https://api.deepseek.com', onChange: (v) => save({ ai: { baseUrl: v.trim() } }) })),
+      field('模型名', input({ value: ai.model || '', placeholder: 'deepseek-chat', onChange: (v) => save({ ai: { model: v.trim() } }) })),
+      field('API key', keyInput, { hint: ai.hasKey ? '已保存在本机，不会显示出来' : '' }),
+      field('禁止出现的内容', textarea({
+        rows: 3,
+        value: (ai.forbidden || []).join('\n'),
+        placeholder: '一行一条，比如某个不能写进简历的数字',
+        onChange: (v) => save({ ai: { forbidden: v.split('\n').map((x) => x.trim()).filter(Boolean) } }),
+      }), { full: true })),
+    h('div', { class: 'row', style: { marginTop: '10px' } },
+      testBtn,
+      ai.hasKey ? h('button', { class: 'btn ghost', type: 'button', onClick: () => save({ ai: { apiKey: null } }) }, '清除 key') : null,
+      result),
+    h('p', { class: 'muted small', style: { marginBottom: 0 } },
+      'DeepSeek：地址 https://api.deepseek.com，模型 deepseek-chat。本地 Ollama：地址 http://localhost:11434/v1，模型填你拉下来的名字，key 留空。',
+      h('br'),
+      '发给模型的只有 JD 和档案里的经历内容；手机号、邮箱、微信、生日这些一概不发。key 只存在本机 data/settings.json。'));
 }
