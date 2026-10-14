@@ -50,6 +50,8 @@ export const DEFAULT_SETTINGS = {
   targetTz: 'Asia/Shanghai',
   targetTzLabel: '北京',
   eventInputTz: 'Asia/Shanghai',
+  // 用户自备的模型服务。apiKey 只存在本机，服务端读，绝不返回给网页
+  ai: { format: 'openai', baseUrl: '', model: '', apiKey: '', forbidden: [], enabled: false },
 };
 
 export const COLLECTIONS = ['applications', 'answers', 'resumes'];

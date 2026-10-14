@@ -167,3 +167,30 @@ test('解析 JD：复用 shared/jdparse.js', async () => {
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { company: '宝洁', companyType: '外企', position: '品牌管培生', cities: '上海', deadline: '' });
 });
+
+test('AI 配置：API key 绝不出服务端', async () => {
+  const get = async () => (await fetch(`${base}/api/settings`)).json();
+  const patch = async (ai) => (await fetch(`${base}/api/settings`, json('PATCH', { ai }))).json();
+
+  const before = await get();
+  assert.equal(before.ai.hasKey, false);
+  assert.equal('apiKey' in before.ai, false);
+
+  const saved = await patch({ format: 'openai', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', apiKey: 'sk-secret-123', enabled: true });
+  assert.equal(saved.ai.hasKey, true);
+  assert.equal('apiKey' in saved.ai, false);
+  assert.equal(saved.ai.model, 'deepseek-chat');
+
+  // 空串 = 不修改，别把已存的 key 洗掉
+  const kept = await patch({ model: 'deepseek-reasoner', apiKey: '' });
+  assert.equal(kept.ai.hasKey, true);
+  assert.equal(kept.ai.model, 'deepseek-reasoner');
+
+  const state = await (await fetch(`${base}/api/state`)).text();
+  assert.equal(state.includes('sk-secret-123'), false);
+  assert.equal(JSON.parse(state).settings.ai.hasKey, true);
+
+  // null = 显式清空
+  const cleared = await patch({ apiKey: null });
+  assert.equal(cleared.ai.hasKey, false);
+});

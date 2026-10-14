@@ -32,6 +32,26 @@ export class HttpError extends Error {
   }
 }
 
+/** 出口一律抹掉 apiKey：网页只需要知道配没配 */
+export function publicSettings(s) {
+  const { apiKey, ...ai } = s.ai || {};
+  return { ...s, ai: { ...ai, hasKey: Boolean(apiKey) } };
+}
+
+/** ai 要深合并；apiKey 空串 = 不修改（网页回传时不带原值），null = 显式清空 */
+export function mergeSettings(current, patch) {
+  const next = { ...current, ...patch };
+  if (patch && patch.ai) {
+    const cur = current.ai || {};
+    const { apiKey, ...rest } = patch.ai;
+    next.ai = { ...cur, ...rest };
+    if (apiKey === null) next.ai.apiKey = '';
+    else if (typeof apiKey === 'string' && apiKey !== '') next.ai.apiKey = apiKey;
+    else next.ai.apiKey = cur.apiKey || '';
+  }
+  return next;
+}
+
 /** 只接受本机网页和 Chrome 插件的请求（防其他网站读写、防 DNS rebinding） */
 function checkSecurity(req) {
   const port = req.socket.localPort;
@@ -239,7 +259,7 @@ export function createApp({ dataDir, rootDir, now = () => new Date() }) {
     if (a === 'state' && m === 'GET' && !b) {
       return send(200, {
         profile: store.getProfile(),
-        settings: store.getSettings(),
+        settings: publicSettings(store.getSettings()),
         applications: store.list('applications'),
         answers: store.list('answers'),
         resumes: store.list('resumes'),
@@ -251,8 +271,11 @@ export function createApp({ dataDir, rootDir, now = () => new Date() }) {
       if (m === 'PATCH') return send(200, store.patchProfile(await readJson(req)));
     }
     if (a === 'settings' && !b) {
-      if (m === 'GET') return send(200, store.getSettings());
-      if (m === 'PATCH') return send(200, store.patchSettings(await readJson(req)));
+      if (m === 'GET') return send(200, publicSettings(store.getSettings()));
+      if (m === 'PATCH') {
+        const merged = mergeSettings(store.getSettings(), await readJson(req));
+        return send(200, publicSettings(store.patchSettings(merged)));
+      }
     }
     if (COLLECTIONS.includes(a)) {
       if (!b) {
