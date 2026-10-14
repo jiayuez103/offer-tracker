@@ -43,7 +43,7 @@ export function stripJdHeader(content) {
 
 export function createStore(dataDir, { now = () => new Date() } = {}) {
   const at = (...xs) => path.join(dataDir, ...xs);
-  for (const d of ['jd', 'resumes', 'backups']) fs.mkdirSync(at(d), { recursive: true });
+  for (const d of ['jd', 'resumes', 'backups', 'ai']) fs.mkdirSync(at(d), { recursive: true });
 
   function def(name) {
     const d = DOCS[name];
@@ -162,6 +162,24 @@ export function createStore(dataDir, { now = () => new Date() } = {}) {
   }
   const deleteJd = (id) => fs.rmSync(jdPath(id), { force: true });
 
+  // ---- AI 诊断与对话的缓存 ----
+  function aiPath(id) {
+    if (!SAFE_ID.test(id)) throw new StoreError('BAD_REQUEST', '非法 id');
+    return at('ai', `${id}.json`);
+  }
+  function readAi(id) {
+    try {
+      return JSON.parse(fs.readFileSync(aiPath(id), 'utf8'));
+    } catch {
+      return null; // 没有缓存，或者文件坏了：当没有处理，重新问一次就好
+    }
+  }
+  function writeAi(id, data) {
+    atomicWrite(aiPath(id), `${JSON.stringify(data, null, 2)}\n`);
+    return data;
+  }
+  const deleteAi = (id) => fs.rmSync(aiPath(id), { force: true });
+
   // ---- 简历文件 ----
   function saveResumeFile(resumeId, originalName, buf) {
     if (!SAFE_ID.test(resumeId)) throw new StoreError('BAD_REQUEST', '非法 id');
@@ -196,6 +214,7 @@ export function createStore(dataDir, { now = () => new Date() } = {}) {
     dataDir, list, get, insert, replace, remove,
     getProfile, patchProfile, getSettings, patchSettings,
     readJd, writeJd, deleteJd,
+    readAi, writeAi, deleteAi,
     saveResumeFile, resumeFilePath, deleteResumeFile,
     version,
   };

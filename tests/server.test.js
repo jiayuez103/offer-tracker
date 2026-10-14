@@ -194,3 +194,73 @@ test('AI 配置：API key 绝不出服务端', async () => {
   const cleared = await patch({ apiKey: null });
   assert.equal(cleared.ai.hasKey, false);
 });
+
+// ---- AI 诊断 ----
+function aiServer({ reply, status = 200 }) {
+  const calls = [];
+  const fake = async (url, init) => {
+    calls.push({ url, init, body: JSON.parse(init.body) });
+    return new Response(JSON.stringify(reply), { status, headers: { 'Content-Type': 'application/json' } });
+  };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jt-ai-'));
+  const app = http.createServer(createApp({ dataDir: dir, rootDir, now: () => new Date(clock), fetchImpl: fake }));
+  return { calls, dir, app };
+}
+
+async function withAi(reply, status, fn) {
+  const { calls, app } = aiServer({ reply, status });
+  await new Promise((r) => app.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${app.address().port}`;
+  const api = async (p, body, method = 'POST') => {
+    const res = await fetch(`${url}${p}`, body === undefined ? undefined : json(method, body));
+    return { status: res.status, data: await res.json().catch(() => null), raw: res };
+  };
+  try {
+    await api('/api/settings', { ai: { format: 'openai', baseUrl: 'https://api.example.com', model: 'm1', apiKey: 'sk-leak-test', enabled: true } }, 'PATCH');
+    const { data: created } = await api('/api/applications', { company: '示例公司', position: '管培生', stage: 'applied' });
+    await fetch(`${url}/api/applications/${created.id}/jd`, json('PUT', { text: '岗位要求：市场营销相关专业，有快消实习经历。' }));
+    await fn({ api, appId: created.id, calls });
+  } finally {
+    app.close();
+  }
+}
+
+const DIAGNOSIS = { summary: '整体匹配', requirements: [{ text: '市场营销专业', match: 'strong', evidence: '硕士在读' }], keywords: ['快消'], rewrites: [] };
+
+test('AI 诊断：调模型、落缓存、第二次不再花钱', async () => {
+  await withAi({ choices: [{ message: { content: '```json\n' + JSON.stringify(DIAGNOSIS) + '\n```' } }], usage: { total_tokens: 100 } }, 200, async ({ api, appId, calls }) => {
+    const first = await api('/api/ai/diagnose', { appId });
+    assert.equal(first.status, 200);
+    assert.equal(first.data.diagnosis.summary, '整体匹配');
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].init.headers.Authorization, 'Bearer sk-leak-test');
+
+    const second = await api('/api/ai/diagnose', { appId });
+    assert.equal(second.status, 200);
+    assert.equal(calls.length, 1, '有缓存就不该再调模型');
+    assert.ok(second.data.cached);
+
+    const forced = await api('/api/ai/diagnose', { appId, force: true });
+    assert.equal(forced.status, 200);
+    assert.equal(calls.length, 2);
+  });
+});
+
+test('AI 诊断：没配置、没 JD、上游报错都给人话', async () => {
+  await withAi({ choices: [{ message: { content: '{}' } }] }, 200, async ({ api }) => {
+    const { data } = await api('/api/ai/diagnose', { appId: 'app_nope' });
+    assert.match(data.error, /找不到|不存在/);
+  });
+  await withAi({ error: { message: 'Invalid API key' } }, 401, async ({ api, appId }) => {
+    const { status, data } = await api('/api/ai/diagnose', { appId });
+    assert.equal(status, 400);
+    assert.match(data.error, /key/i);
+  });
+});
+
+test('AI 接口的响应里绝不出现 key', async () => {
+  await withAi({ choices: [{ message: { content: JSON.stringify(DIAGNOSIS) } }] }, 200, async ({ api, appId }) => {
+    const out = await api('/api/ai/diagnose', { appId });
+    assert.equal(JSON.stringify(out.data).includes('sk-leak-test'), false);
+  });
+});

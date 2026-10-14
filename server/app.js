@@ -6,6 +6,7 @@ import { COLLECTIONS, ID_PREFIX } from '../shared/constants.js';
 import { prepareNewApplication, applyApplicationUpdate, validateApplication, newId } from '../shared/domain.js';
 import { buildCalendar } from '../shared/ics.js';
 import { parseJD } from '../shared/jdparse.js';
+import { createAi, AiError } from './ai.js';
 import { todayInZone } from '../shared/time.js';
 
 const MIME = {
@@ -155,8 +156,9 @@ function jdHeader(app, now) {
   ].join('\n');
 }
 
-export function createApp({ dataDir, rootDir, now = () => new Date() }) {
+export function createApp({ dataDir, rootDir, now = () => new Date(), fetchImpl = fetch }) {
   const store = createStore(dataDir, { now });
+  const ai = createAi({ store, fetchImpl });
   const webDir = path.join(rootDir, 'web');
   const sharedDir = path.join(rootDir, 'shared');
   const { version: appVersion } = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
@@ -255,6 +257,16 @@ export function createApp({ dataDir, rootDir, now = () => new Date() }) {
     if (a === 'parse-jd' && m === 'POST' && !b) {
       const { text = '', url = '' } = await readJson(req);
       return send(200, parseJD(String(text), String(url), now()));
+    }
+    if (a === 'ai' && m === 'POST') {
+      const payload = await readJson(req);
+      try {
+        if (b === 'test') return send(200, await ai.test());
+        if (b === 'diagnose') return send(200, await ai.diagnose(String(payload.appId || ''), { force: Boolean(payload.force) }));
+      } catch (e) {
+        if (e instanceof AiError) throw new HttpError(400, e.message);
+        throw e;
+      }
     }
     if (a === 'state' && m === 'GET' && !b) {
       return send(200, {
