@@ -12,7 +12,7 @@ import { newId, isClosed, stageIndex, textStats } from '../../shared/domain.js';
 import { dualTime } from '../../shared/time.js';
 import { openEventForm } from './eventForm.js';
 
-const TABS = [['info', '基本信息'], ['events', '日程与复盘'], ['jd', 'JD'], ['timeline', '时间线']];
+const TABS = [['info', '基本信息'], ['events', '日程与复盘'], ['jd', 'JD'], ['ai', 'AI'], ['timeline', '时间线']];
 
 const TIMELINE_TEXT = {
   created: (e) => `创建（${STAGE_LABEL[e.to] || e.to || '—'}）`,
@@ -112,8 +112,16 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
   function renderPane() {
     const app = get();
     if (!app) return;
-    const build = { info: infoPane, events: eventsPane, jd: jdPane, timeline: timelinePane }[currentTab];
+    const build = { info: infoPane, events: eventsPane, jd: jdPane, ai: aiTab, timeline: timelinePane }[currentTab];
     pane.replaceChildren(build(app));
+  }
+
+  function aiTab(app) {
+    const box = h('div');
+    import('./aiPanel.js')
+      .then((m) => box.replaceChildren(m.aiPane(app, { onNeedJd: () => { currentTab = 'jd'; renderTabs(); renderPane(); } })))
+      .catch((e) => box.replaceChildren(h('p', { class: 'result err' }, `打不开 AI 页：${e.message}`)));
+    return box;
   }
 
   // ---------- 基本信息 ----------

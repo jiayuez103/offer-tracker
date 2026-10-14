@@ -258,6 +258,8 @@ export function createApp({ dataDir, rootDir, now = () => new Date(), fetchImpl 
       const { text = '', url = '' } = await readJson(req);
       return send(200, parseJD(String(text), String(url), now()));
     }
+    // 只读缓存，不调模型：面板打开时用它，避免一开页面就花钱
+    if (a === 'ai' && m === 'GET' && b) return send(200, store.readAi(b));
     if (a === 'ai' && m === 'POST') {
       const payload = await readJson(req);
       try {

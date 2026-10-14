@@ -60,3 +60,5 @@ export const api = {
 
 export const fileUrl = (stored) => `${API_BASE}/files/${stored.split('/').map(encodeURIComponent).join('/')}`;
 export const calendarUrl = () => `${API_BASE}/calendar.ics`;
+/** 流式接口要自己拿 fetch 读 body，这里给出完整地址 */
+export const apiUrl = (path) => `${API_BASE}${path}`;
