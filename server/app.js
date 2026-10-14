@@ -263,6 +263,18 @@ export function createApp({ dataDir, rootDir, now = () => new Date(), fetchImpl 
       try {
         if (b === 'test') return send(200, await ai.test());
         if (b === 'diagnose') return send(200, await ai.diagnose(String(payload.appId || ''), { force: Boolean(payload.force) }));
+        if (b === 'chat') {
+          // 边生成边推给网页；一旦开了头就不能再改状态码，出错也只能走 SSE
+          res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive' });
+          const sse = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+          try {
+            await ai.chat(String(payload.appId || ''), String(payload.message || ''), (delta) => sse('delta', delta));
+            sse('done', true);
+          } catch (e) {
+            sse('error', e instanceof AiError ? e.message : '出错了，再试一次');
+          }
+          return res.end();
+        }
       } catch (e) {
         if (e instanceof AiError) throw new HttpError(400, e.message);
         throw e;

@@ -264,3 +264,40 @@ test('AI 接口的响应里绝不出现 key', async () => {
     assert.equal(JSON.stringify(out.data).includes('sk-leak-test'), false);
   });
 });
+
+test('AI 对话：转成 SSE 流，并把来回都记进缓存', async () => {
+  const chunks = [
+    'data: {"choices":[{"delta":{"content":"先"}}]}\n\n',
+    'data: {"choices":[{"delta":{"content":"改这段"}}]}\n\n',
+    'data: [DONE]\n\n',
+  ];
+  const fake = async () => new Response(new ReadableStream({
+    start(c) {
+      for (const s of chunks) c.enqueue(new TextEncoder().encode(s));
+      c.close();
+    },
+  }), { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jt-ai2-'));
+  const app = http.createServer(createApp({ dataDir: dir, rootDir, now: () => new Date(clock), fetchImpl: fake }));
+  await new Promise((r) => app.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${app.address().port}`;
+  try {
+    await fetch(`${url}/api/settings`, json('PATCH', { ai: { format: 'openai', baseUrl: 'https://api.example.com', model: 'm1', apiKey: 'sk-x', enabled: true } }));
+    const created = await (await fetch(`${url}/api/applications`, json('POST', { company: '示例公司', stage: 'applied' }))).json();
+    await fetch(`${url}/api/applications/${created.id}/jd`, json('PUT', { text: '要求：市场营销' }));
+
+    const res = await fetch(`${url}/api/ai/chat`, json('POST', { appId: created.id, message: '帮我改短一点' }));
+    assert.match(res.headers.get('content-type'), /text\/event-stream/);
+    const body = await res.text();
+    assert.match(body, /先/);
+    assert.match(body, /改这段/);
+
+    const saved = JSON.parse(fs.readFileSync(path.join(dir, 'ai', `${created.id}.json`), 'utf8'));
+    assert.equal(saved.chat.length, 2);
+    assert.equal(saved.chat[0].content, '帮我改短一点');
+    assert.equal(saved.chat[1].content, '先改这段');
+  } finally {
+    app.close();
+  }
+});
