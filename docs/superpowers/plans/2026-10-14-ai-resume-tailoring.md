@@ -155,3 +155,35 @@ ai: { format: 'openai', baseUrl: '', model: '', apiKey: '', forbidden: [], enabl
 - [ ] **Step 3**：挑一条有 JD 快照的真实投递，跑诊断 + 一轮对话；检查：没有编造的数字、禁止清单生效、改写能对上档案条目
 - [ ] **Step 4**：README 补一节「接入 AI」；CLAUDE.md 补 `data/ai/` 和密钥纪律
 - [ ] **Step 5**：用 finishing-a-development-branch 合并回 main，推送到 GitHub
+
+---
+
+## Task 9：面试准备（服务端）
+
+同一套地基再加一个动作：按 JD + 公司 + 档案生成可能被问到的问题。
+
+- [ ] **Step 1：写测试**
+  - `interviewPrompt` 要求「问题用 JD 的语言写」，并给出 JSON 结构
+  - `POST /api/ai/interview`：未配置 → 400；没有 JD → 400；成功后写进 `data/ai/<appId>.json` 的 `interview` 字段；第二次读缓存；`force` 重算
+- [ ] **Step 2：跑测试确认失败**
+- [ ] **Step 3：实现**
+
+输出结构：
+
+```json
+{ "summary": "这场面试最可能围绕什么展开",
+  "questions": [{ "category": "行为|业务|动机|反问", "q": "问题",
+                  "why": "为什么会问（JD 哪条 / 简历哪段）",
+                  "use": ["档案条目 id"], "points": ["回答要点"] }] }
+```
+
+约束：行为题必须挂在真实经历上；要点只写方向，不替用户编故事；不编造公司内部信息，对公司的判断只能来自 JD 和公开常识，并说明这点。
+
+- [ ] **Step 4：跑测试** 全过
+- [ ] **Step 5：提交** `feat(server): interview question prep from the JD`
+
+## Task 10：面试准备（界面）
+
+- [ ] **Step 1：实现** AI 页顶部加「改简历 / 面试准备」切换，共用下方对话框；问题按四类分组，每条显示为什么会问、建议用哪段经历（id 映射成公司 / 学校名）、要点；每条可复制
+- [ ] **Step 2：验证** 用真实投递跑一次，检查行为题确实挂在自己的经历上、语言跟着 JD
+- [ ] **Step 3：提交** `feat(web): interview prep tab`
