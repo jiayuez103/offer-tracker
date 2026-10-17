@@ -143,8 +143,14 @@ export function createAi({ store, fetchImpl = fetch }) {
       json: true,
     });
     const parsed = extractJson(text);
+    const profile = store.getProfile();
+    const known = new Set([...(profile.education || []), ...(profile.work || []), ...(profile.projects || []), ...(profile.activities || [])].map((x) => x.id));
     const interviewData = parsed && Array.isArray(parsed.questions)
-      ? { summary: String(parsed.summary || ''), questions: parsed.questions.slice(0, 24) }
+      ? {
+        summary: String(parsed.summary || ''),
+        // 问题本身留着，但「用哪段经历」里对不上的 id 去掉，免得界面显示一串没意义的字符串
+        questions: parsed.questions.slice(0, 24).map((q) => ({ ...q, use: (Array.isArray(q.use) ? q.use : []).filter((id) => known.has(id)) })),
+      }
       : { summary: text.slice(0, 2000), questions: [], raw: true };
     const record = { ...(cached || {}), model: (store.getSettings().ai || {}).model || '', interviewAt: new Date().toISOString(), interviewJdHash: jdHash, interviewTokens: tokens, interview: interviewData, chat: (cached && cached.chat) || [] };
     store.writeAi(appId, record);

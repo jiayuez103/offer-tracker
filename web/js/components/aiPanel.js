@@ -1,9 +1,12 @@
-// 投递详情里的「AI」页：按这条 JD 给匹配诊断和改写建议，下面是带上下文的对话。
-// 所有改写都只是建议，不会自动写回档案。
+// 投递详情里的「AI」页：两个动作共用一套上下文 —— 按 JD 改简历、按 JD 准备面试；下面是对话框。
+// 所有产出都只是建议，不会自动写回档案。
 import { store } from '../store.js';
 import { api, apiUrl } from '../api.js';
 import { h, icon, toast, copyText, ensureCss } from '../ui.js';
 import { formatZoned } from '../../shared/time.js';
+
+const MODES = [['resume', '改简历'], ['interview', '面试准备']];
+const CATS = [['行为', '行为题（追问你的经历）'], ['业务', '业务题（JD 的专业要求）'], ['动机', '动机题'], ['反问', '你该反问什么']];
 
 const MATCH = {
   strong: ['有硬证据', 'ok'],
@@ -25,21 +28,46 @@ export function aiPane(app, { onNeedJd } = {}) {
     return root;
   }
 
+  let mode = 'resume';
+  const modeTabs = h('div', { class: 'segmented ai-modes' });
   const head = h('div', { class: 'ai-head' });
   const body = h('div', { class: 'ai-body' });
   const chatBox = h('div', { class: 'ai-chat' });
   const log = h('div', { class: 'ai-log' });
-  root.append(head, body, chatBox);
+  root.append(modeTabs, head, body, chatBox);
 
   let state = null;
 
+  function renderModes() {
+    modeTabs.replaceChildren(...MODES.map(([key, label]) => h('button', {
+      type: 'button',
+      class: key === mode ? 'on' : '',
+      onClick: () => { mode = key; renderModes(); renderHead(); renderBody(); },
+    }, label)));
+  }
+
+  /** 经历 id → 看得懂的名字 */
+  function entryName(id) {
+    const p = store.state.profile || {};
+    const all = [...(p.education || []), ...(p.work || []), ...(p.projects || []), ...(p.activities || [])];
+    const e = all.find((x) => x.id === id);
+    if (!e) return id;
+    const pickName = (v) => (v && typeof v === 'object' ? v.zh || v.en : v) || '';
+    return pickName(e.company) || pickName(e.school) || pickName(e.name) || pickName(e.org) || id;
+  }
+
   function renderHead() {
-    const when = state && state.at ? formatZoned(state.at, s.homeTz) : '';
+    const isResume = mode === 'resume';
+    const at = state && (isResume ? state.at : state.interviewAt);
+    const done = Boolean(state && (isResume ? state.diagnosis : state.interview));
+    const tokens = state && (isResume ? state.tokens : state.interviewTokens);
     head.replaceChildren(
-      h('span', { class: 'muted small grow' }, state
-        ? `基于 ${when} 的 JD · ${state.model || ''}${state.tokens ? ` · ${state.tokens} tokens` : ''}`
-        : '还没诊断过这条投递'),
-      h('button', { class: 'btn sm', type: 'button', onClick: () => run(true) }, icon('refresh'), state ? '重新诊断' : '开始诊断'));
+      h('span', { class: 'muted small grow' }, done
+        ? `基于 ${formatZoned(at, s.homeTz)} 的 JD · ${state.model || ''}${tokens ? ` · ${tokens} tokens` : ''}`
+        : (isResume ? '还没诊断过这条投递' : '还没生成过面试题')),
+      h('button', { class: 'btn sm', type: 'button', onClick: () => run(true) },
+        icon('refresh'),
+        done ? '重新生成' : (isResume ? '开始诊断' : '生成面试题')));
   }
 
   function card(r) {
@@ -55,8 +83,42 @@ export function aiPane(app, { onNeedJd } = {}) {
         : null);
   }
 
+  function questionCard(q) {
+    return h('div', { class: 'ai-q' },
+      h('div', { class: 'ai-q-head' },
+        h('b', null, q.q || ''),
+        h('button', { class: 'btn sm ghost', type: 'button', onClick: () => copyText(q.q || '', '问题已复制') }, icon('copy'))),
+      q.why ? h('p', { class: 'muted small' }, `为什么会问：${q.why}`) : null,
+      (q.use || []).length ? h('p', { class: 'small' }, '用这段经历：', ...q.use.map((id) => h('span', { class: 'chip' }, entryName(id)))) : null,
+      (q.points || []).length ? h('ul', { class: 'ai-points' }, q.points.map((pt) => h('li', null, pt))) : null);
+  }
+
+  function renderInterview() {
+    const iv = state && state.interview;
+    if (!iv) {
+      body.replaceChildren(h('p', { class: 'muted small' }, '点右上角「生成面试题」，我会按这条 JD 和你的经历列出最可能被问到的问题，并标出每题该用哪段经历回答。'));
+      return;
+    }
+    if (iv.raw) {
+      body.replaceChildren(h('div', { class: 'ai-summary' }, iv.summary || ''));
+      return;
+    }
+    const groups = CATS.map(([key, label]) => {
+      const list = (iv.questions || []).filter((q) => (q.category || '').includes(key));
+      return list.length
+        ? h('div', { class: 'ai-section' }, h('h4', null, `${label} · ${list.length}`), ...list.map(questionCard))
+        : null;
+    });
+    const rest = (iv.questions || []).filter((q) => !CATS.some(([key]) => (q.category || '').includes(key)));
+    body.replaceChildren(
+      iv.summary ? h('div', { class: 'ai-summary' }, iv.summary) : null,
+      ...groups,
+      rest.length ? h('div', { class: 'ai-section' }, h('h4', null, '其它'), ...rest.map(questionCard)) : null);
+  }
+
   function renderBody() {
-    if (!state) {
+    if (mode === 'interview') return renderInterview();
+    if (!state || !state.diagnosis) {
       body.replaceChildren(h('p', { class: 'muted small' }, '点右上角「开始诊断」，我会读这条投递的 JD 和你的档案，给出匹配情况和改写建议。'));
       return;
     }
@@ -93,7 +155,7 @@ export function aiPane(app, { onNeedJd } = {}) {
   async function run(force) {
     body.replaceChildren(h('p', { class: 'muted small' }, '正在读 JD 和档案，大概十几秒…'));
     try {
-      state = await api.post('/api/ai/diagnose', { appId: app.id, force });
+      state = await api.post(mode === 'interview' ? '/api/ai/interview' : '/api/ai/diagnose', { appId: app.id, force });
       renderHead();
       renderBody();
       renderLog();
@@ -174,6 +236,7 @@ export function aiPane(app, { onNeedJd } = {}) {
     h('div', { class: 'ai-input' }, box, sendBtn),
     h('p', { class: 'muted small' }, '⌘↵ 发送。对话带着这条 JD 和你的档案，但不会自动改档案。'));
 
+  renderModes();
   renderHead();
   renderBody();
   api.get(`/api/ai/${app.id}`)

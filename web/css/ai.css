@@ -27,3 +27,8 @@
 .ai-warn { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; color: var(--warn); font-size: 12px; }
 .ai-warn li { display: flex; align-items: center; gap: 5px; }
 .ai-warn .icon { width: 13px; height: 13px; }
+.ai-modes { align-self: flex-start; }
+.ai-q { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
+.ai-q-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.ai-points { margin: 2px 0 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; }
+.ai-points li { margin: 2px 0; }
