@@ -2,7 +2,7 @@
 // 密钥只在这里读，不往上层返回，也不写日志。
 import crypto from 'node:crypto';
 import { buildRequest, readText, extractJson, parseStreamChunk } from '../shared/llm.js';
-import { systemPrompt, diagnosePrompt, chatMessages, rewriteWarnings } from '../shared/aiprompt.js';
+import { systemPrompt, diagnosePrompt, interviewPrompt, chatMessages, rewriteWarnings } from '../shared/aiprompt.js';
 
 const TIMEOUT_MS = 60000;
 const MAX_CHAT = 40;
@@ -128,6 +128,29 @@ export function createAi({ store, fetchImpl = fetch }) {
     return { ...record, cached: false };
   }
 
+  async function interview(appId, { force = false } = {}) {
+    const app = store.get('applications', appId);
+    if (!app) throw new AiError('找不到这条投递');
+    const jd = store.readJd(appId);
+    if (!jd.trim()) throw new AiError('这条投递还没有 JD 快照：先存一份 JD 再来准备面试');
+    const cached = store.readAi(appId);
+    const jdHash = hash(jd);
+    if (!force && cached && cached.interview && cached.interviewJdHash === jdHash) return { ...cached, cached: true };
+
+    const { text, tokens } = await call({
+      system: systemPrompt({ forbidden: forbidden() }),
+      messages: [{ role: 'user', content: interviewPrompt({ jd, profile: store.getProfile(), position: app.position, company: app.company }) }],
+      json: true,
+    });
+    const parsed = extractJson(text);
+    const interviewData = parsed && Array.isArray(parsed.questions)
+      ? { summary: String(parsed.summary || ''), questions: parsed.questions.slice(0, 24) }
+      : { summary: text.slice(0, 2000), questions: [], raw: true };
+    const record = { ...(cached || {}), model: (store.getSettings().ai || {}).model || '', interviewAt: new Date().toISOString(), interviewJdHash: jdHash, interviewTokens: tokens, interview: interviewData, chat: (cached && cached.chat) || [] };
+    store.writeAi(appId, record);
+    return { ...record, cached: false };
+  }
+
   async function chat(appId, message, onDelta) {
     const app = store.get('applications', appId);
     if (!app) throw new AiError('找不到这条投递');
@@ -155,5 +178,5 @@ export function createAi({ store, fetchImpl = fetch }) {
     return { ok: true, reply: text.slice(0, 100), model: (store.getSettings().ai || {}).model };
   }
 
-  return { diagnose, chat, test };
+  return { diagnose, interview, chat, test };
 }

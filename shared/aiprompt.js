@@ -98,6 +98,32 @@ export function rewriteWarnings({ original = '', rewrite = '', context = '' } = 
   return out;
 }
 
+export function interviewPrompt({ jd, profile, position = '', company = '' }) {
+  return [
+    `公司：${company || '（JD 里自己判断）'}`,
+    `岗位：${position || '（JD 里自己判断）'}`,
+    '',
+    '=== JD 全文 ===',
+    clipJd(jd),
+    '',
+    '=== 候选人档案（经历条目，带 id）===',
+    JSON.stringify(resumeForAI(profile)),
+    '',
+    '请基于这份 JD 和候选人的真实经历，列出这场面试最可能被问到的问题。要求：',
+    '- 问题用 JD 的语言写：JD 是英文就出英文问题，中文 JD 就出中文问题。',
+    '- 行为题必须挂在候选人真实的某段经历上，use 里填那条经历的 id；凭空设想的情景题不要。',
+    '- points 只写回答方向和该覆盖的要点，不要替候选人编故事、编数字。',
+    '- 对公司的判断只能来自 JD 和公开常识，不要编造内部信息、业务数据或组织架构。',
+    '- 四类都要有：行为（追问经历）、业务（JD 的专业要求）、动机（为什么这家 / 这个岗）、反问（候选人该问面试官什么）。总共 12-18 条。',
+    '',
+    '只输出一个 JSON 对象，不要任何解释文字：',
+    '{',
+    '  "summary": "一句话：这场面试最可能围绕什么展开",',
+    '  "questions": [{"category": "行为|业务|动机|反问", "q": "问题原文", "why": "为什么会问（对应 JD 哪条或简历哪段）", "use": ["经历 id"], "points": ["回答要点"]}]',
+    '}',
+  ].join('\n');
+}
+
 /** 对话上下文：背景一条 + 最近若干轮 + 这次的问题 */
 export function chatMessages({ history = [], diagnosisSummary = '', jd = '', profile = {}, message = '' }) {
   const background = [

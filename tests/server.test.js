@@ -301,3 +301,20 @@ test('AI 对话：转成 SSE 流，并把来回都记进缓存', async () => {
     app.close();
   }
 });
+
+test('面试准备：生成、缓存、强制重算', async () => {
+  const reply = { summary: '围绕快消新品和消费者洞察', questions: [{ category: '行为', q: '讲讲海天那个项目', why: 'JD 要求消费者洞察', use: ['work_1'], points: ['先说结构', '再说结果'] }] };
+  await withAi({ choices: [{ message: { content: JSON.stringify(reply) } }] }, 200, async ({ api, appId, calls }) => {
+    const first = await api('/api/ai/interview', { appId });
+    assert.equal(first.status, 200);
+    assert.equal(first.data.interview.questions.length, 1);
+    assert.equal(calls.length, 1);
+
+    const second = await api('/api/ai/interview', { appId });
+    assert.ok(second.data.cached);
+    assert.equal(calls.length, 1);
+
+    await api('/api/ai/interview', { appId, force: true });
+    assert.equal(calls.length, 2);
+  });
+});

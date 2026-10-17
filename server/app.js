@@ -265,6 +265,7 @@ export function createApp({ dataDir, rootDir, now = () => new Date(), fetchImpl 
       try {
         if (b === 'test') return send(200, await ai.test());
         if (b === 'diagnose') return send(200, await ai.diagnose(String(payload.appId || ''), { force: Boolean(payload.force) }));
+        if (b === 'interview') return send(200, await ai.interview(String(payload.appId || ''), { force: Boolean(payload.force) }));
         if (b === 'chat') {
           // 边生成边推给网页；一旦开了头就不能再改状态码，出错也只能走 SSE
           res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive' });

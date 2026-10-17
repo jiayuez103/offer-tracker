@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resumeForAI, systemPrompt, diagnosePrompt, chatMessages, rewriteWarnings } from '../shared/aiprompt.js';
+import { resumeForAI, systemPrompt, diagnosePrompt, chatMessages, rewriteWarnings, interviewPrompt } from '../shared/aiprompt.js';
 
 const profile = {
   basic: {
@@ -62,4 +62,13 @@ test('改写建议的机器检查', () => {
   assert.match(rewriteWarnings({ original: '完成 A', rewrite: '完成 A，体现端到端项目负责能力' }).join(), /自我评价/);
   // 越改越长
   assert.match(rewriteWarnings({ original: '完成用户访谈', rewrite: '完成用户访谈并围绕消费者洞察输出结构化结论与后续建议' }).join(), /长/);
+});
+
+test('面试题提示词：跟着 JD 的语言，结构清楚', () => {
+  const p = interviewPrompt({ jd: 'We are looking for a marketing trainee.', profile, position: 'Marketing MT', company: '示例公司' });
+  assert.match(p, /JD 的语言/);
+  assert.match(p, /questions/);
+  assert.match(p, /行为/);
+  assert.match(p, /示例公司/);
+  assert.equal(p.includes('13800000000'), false);
 });
