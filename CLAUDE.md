@@ -19,6 +19,7 @@
 | `settings.json` | 设置，缺省值见 `shared/constants.js` 的 `DEFAULT_SETTINGS` |
 | `jd/<appId>.md` | JD 快照 |
 | `backups/` | 自动备份 |
+| `ai/<appId>.json` | AI 诊断、面试题和对话的缓存 |
 
 ## 修改数据
 
@@ -65,6 +66,14 @@ curl -s -X PUT $API/applications/<id>/jd -H 'Content-Type: application/json' -d 
 - 绝不存身份证号、护照号、密码；`account` 只放注册用的邮箱或手机号
 - 代码、提交信息、`docs/` 里不写任何个人信息（以后可能公开部署）
 - 保持零依赖、无构建；数据读写只放在 `server/store.js`；业务规则放 `shared/`，网页和服务端共用
+
+## AI（settings.ai + server/ai.js）
+
+- 模型服务由用户自己配：`settings.ai = {format: 'openai'|'anthropic', baseUrl, model, apiKey, forbidden[], enabled}`
+- **apiKey 只在服务端读**。`/api/settings`、`/api/state` 一律经 `publicSettings()` 抹掉，只返回 `hasKey`；PATCH 时空串表示不改、`null` 表示清空。改这块务必保留 `tests/server.test.js` 里那条「绝不出服务端」的测试
+- 发给模型的内容走 `shared/aiprompt.js` 的 `resumeForAI()` 白名单：联系方式、证件、生日一律不发
+- 接口：`POST /api/ai/{test,diagnose,interview,chat}`，`GET /api/ai/<appId>` 只读缓存不花钱
+- 防编造：系统提示 + 用户的 `forbidden` 清单 + `rewriteWarnings()` 的机器检查 + 丢弃对不上档案 id 的建议
 
 ## Chrome 插件（extension/）
 
