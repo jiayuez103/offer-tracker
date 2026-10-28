@@ -135,3 +135,22 @@ test('换一个收到时间，截止时间跟着重算', () => {
   );
   assert.equal(deadlineFrom({ receivedAt: twoDaysAgo, window: null, tz: 'America/Los_Angeles' }), '');
 });
+
+test('小时级窗口：48 小时内', () => {
+  const r = parse('请于收到邮件后48小时内完成，本次测评预计耗时20-30分钟。');
+  assert.deepEqual(r.window, { n: 48, unit: 'hour' });
+  assert.equal(r.deadline, iso('2026-10-14T02:42:00-07:00')); // 收到 10/12 02:42 + 48h
+  assert.equal(r.durationMin, 30); // 20-30 分钟取上限
+  assert.equal(r.confident, true);
+});
+
+test('英文 hours 也认', () => {
+  assert.deepEqual(parse('Please complete within 24 hours.').window, { n: 24, unit: 'hour' });
+});
+
+test('换收到时间，小时窗口同样重算', () => {
+  assert.equal(
+    deadlineFrom({ receivedAt: '2026-10-20T09:00:00-07:00', window: { n: 48, unit: 'hour' }, tz: 'America/Los_Angeles' }),
+    iso('2026-10-22T09:00:00-07:00'),
+  );
+});

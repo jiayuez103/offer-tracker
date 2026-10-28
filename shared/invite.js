@@ -93,22 +93,24 @@ export function deadlineFrom({ receivedAt, window, tz = 'Asia/Shanghai' }) {
   if (!window || !window.n) return '';
   const start = receivedAt instanceof Date ? receivedAt : new Date(receivedAt);
   if (Number.isNaN(start.getTime())) return '';
-  const at = window.unit === 'business'
-    ? businessDeadline(start, Number(window.n), tz)
-    : new Date(start.getTime() + Number(window.n) * DAY).toISOString();
+  const span = { hour: 3600000, day: DAY }[window.unit];
+  const at = span
+    ? new Date(start.getTime() + Number(window.n) * span).toISOString()
+    : businessDeadline(start, Number(window.n), tz);
   return new Date(at).toISOString();
 }
 
 /** 「X 天内」「X 个工作日内」「within X business days」 */
 function relativeDeadline(text, receivedAt, tz) {
-  const zh = /([0-9]+|[零一二三四五六七八九十]+)\s*(?:个)?\s*(工作日|自然日|天|日)\s*(?:之)?内/.exec(text);
-  const en = /within\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(business\s+|working\s+)?days?/i.exec(text);
+  const zh = /([0-9]+|[零一二三四五六七八九十]+)\s*(?:个)?\s*(工作日|自然日|小时|钟头|天|日)\s*(?:之)?内/.exec(text);
+  const en = /within\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(business\s+|working\s+)?(days?|hours?)/i.exec(text);
   const hit = zh || en;
   if (!hit) return null;
   const n = zhNumber(hit[1]);
   if (!n) return null;
+  const isHour = zh ? /小时|钟头/.test(hit[2]) : /hour/i.test(hit[3] || '');
   const isBusiness = zh ? hit[2] === '工作日' : Boolean(hit[2]);
-  const window = { n, unit: isBusiness ? 'business' : 'day' };
+  const window = { n, unit: isHour ? 'hour' : (isBusiness ? 'business' : 'day') };
   return { at: deadlineFrom({ receivedAt, window, tz }), basis: snippet(text, hit.index, hit[0].length), window };
 }
 
