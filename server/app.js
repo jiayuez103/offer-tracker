@@ -264,7 +264,8 @@ export function createApp({ dataDir, rootDir, now = () => new Date(), fetchImpl 
         const settings = store.getSettings();
         const companies = store.list('applications').map((x) => ({ company: x.company, companyEn: x.companyEn }));
         const parsed = parseInvite(String(text), { receivedAt: now(), settings, companies });
-        const item = { id: newId('inb'), at: now().toISOString(), ...parsed };
+        // 留一段原文：解析不准时能回头看是什么进来了，确认或忽略后就随条目一起删掉
+        const item = { id: newId('inb'), at: now().toISOString(), ...parsed, excerpt: String(text).replace(/\s+/g, ' ').trim().slice(0, 600) };
         const list = [item, ...store.readInbox()].slice(0, 50);
         store.writeInbox(list);
         const when = item.deadline

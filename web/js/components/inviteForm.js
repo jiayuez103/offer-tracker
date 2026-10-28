@@ -173,7 +173,13 @@ export function openInviteForm({ pending = null } = {}) {
       { label: '存成日程', primary: true, onClick: save },
     ],
   });
-  if (pending) apply(pending);
+  if (pending) {
+    apply(pending);
+    if (pending.excerpt) {
+      raw = pending.excerpt;
+      paste.value = pending.excerpt;
+    }
+  }
   else setTimeout(() => paste.focus(), 0);
   return modal;
 }

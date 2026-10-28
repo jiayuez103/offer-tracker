@@ -357,3 +357,10 @@ test('导入邮件：空内容要报错', async () => {
   const res = await fetch(`${base}/api/inbox`, json('POST', { text: '   ' }));
   assert.equal(res.status, 400);
 });
+
+test('导入邮件：保留一段原文，方便回头核对', async () => {
+  const res = await (await fetch(`${base}/api/inbox`, json('POST', { text: '  请在 5 天内完成测评。\n\n链接：https://exam.example.com/x  ' }))).json();
+  assert.match(res.item.excerpt, /请在 5 天内完成测评/);
+  assert.equal(res.item.excerpt.includes('\n'), false, '原文要压成一行存');
+  await fetch(`${base}/api/inbox/${res.item.id}`, { method: 'DELETE' });
+});
