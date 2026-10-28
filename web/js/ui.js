@@ -358,8 +358,8 @@ export function openApp(id, options) {
   });
 }
 
-export function openInvite() {
-  return import('./components/inviteForm.js').then((m) => m.openInviteForm()).catch((e) => {
+export function openInvite(options) {
+  return import('./components/inviteForm.js').then((m) => m.openInviteForm(options)).catch((e) => {
     console.error(e);
     toast(`打不开粘贴邀请：${e.message}`, { type: 'error' });
   });

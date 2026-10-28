@@ -318,3 +318,42 @@ test('面试准备：生成、缓存、强制重算', async () => {
     assert.equal(calls.length, 2);
   });
 });
+
+// ---- 邮件一键导入：解析后进待确认队列，绝不自动落盘 ----
+test('导入邮件：解析出期限，进队列，不自动创建日程', async () => {
+  const text = [
+    '亲爱的同学：恭喜您进入示例公司2027校园招聘AI面试环节。',
+    '请在收到本通知后于5天内完成面试。答题时间约30分钟。',
+    'https://exam.example.com/r/abc123',
+  ].join('\n');
+  const res = await (await fetch(`${base}/api/inbox`, json('POST', { text }))).json();
+  assert.equal(res.item.type, 'AI面');
+  assert.equal(res.item.durationMin, 30);
+  assert.ok(res.item.deadline, '应该算出截止时间');
+  assert.match(res.summary, /AI面/); // 通知文案
+  assert.equal(res.item.confirmed, undefined);
+
+  const list = await (await fetch(`${base}/api/inbox`)).json();
+  assert.equal(list.length, 1);
+  assert.equal(list[0].id, res.item.id);
+
+  // 关键：没有凭空多出投递或日程
+  const apps = await (await fetch(`${base}/api/applications`)).json();
+  assert.equal(apps.every((a) => (a.events || []).length === 0), true, '不该自动建日程');
+
+  await fetch(`${base}/api/inbox/${res.item.id}`, { method: 'DELETE' });
+  assert.equal((await (await fetch(`${base}/api/inbox`)).json()).length, 0);
+});
+
+test('导入邮件：认不出期限也收下，标成待补', async () => {
+  const res = await (await fetch(`${base}/api/inbox`, json('POST', { text: '您好，请完成我们的在线测评，谢谢。' }))).json();
+  assert.equal(res.item.deadline, '');
+  assert.equal(res.item.confident, false);
+  assert.match(res.summary, /没认出|手填/);
+  await fetch(`${base}/api/inbox/${res.item.id}`, { method: 'DELETE' });
+});
+
+test('导入邮件：空内容要报错', async () => {
+  const res = await fetch(`${base}/api/inbox`, json('POST', { text: '   ' }));
+  assert.equal(res.status, 400);
+});

@@ -1,5 +1,6 @@
 // 概览：数字卡片、需要处理、未来 7 天、投递漏斗、每周投递、赛道对比。
 import { store } from '../store.js';
+import { api } from '../api.js';
 import { h, icon, ensureCss, openApp, openNewApp, openInvite } from '../ui.js';
 import { STAGE_LABEL, TRACKS } from '../../shared/constants.js';
 import { actionItems, funnel, weeklyApplied, stageIndex, isClosed } from '../../shared/domain.js';
@@ -68,6 +69,7 @@ function build() {
   const now = new Date();
   const today = todayInZone(settings.homeTz, now);
   return h('div', { class: 'dash' },
+    inboxBar(),
     digestBar(apps, settings, now),
     kpiRow(apps, settings, today),
     h('div', { class: 'dash-grid' },
@@ -91,6 +93,35 @@ function welcome() {
 const DIGEST_KINDS = new Set(['test', 'meeting', 'deadline', 'overdue']);
 
 /** 今明两天真正要动手的事；没有就不渲染这一条 */
+/** 邮件一键导入进来的待确认条目：点一下打开预填好的确认框 */
+function inboxBar() {
+  const box = h('section', { class: 'digest inbox-bar', hidden: true });
+  api.get('/api/inbox').then((list) => {
+    if (!list.length) return;
+    box.hidden = false;
+    box.replaceChildren(
+      h('span', { class: 'digest-label' }, icon('alert'), `邮件导入待确认 ${list.length} 条`),
+      h('ul', { class: 'digest-list' }, list.map((it) => h('li', null,
+        h('button', {
+          type: 'button',
+          class: 'digest-item',
+          onClick: () => openInvite({ pending: it }),
+        },
+        h('b', null, it.company || '未知公司'),
+        h('span', null, `${it.type}${it.deadline ? '' : ' · 期限待填'}`))))),
+      h('span', { class: 'spacer' }),
+      h('button', {
+        class: 'btn sm ghost',
+        type: 'button',
+        onClick: async () => {
+          for (const it of list) await api.del(`/api/inbox/${it.id}`);
+          box.hidden = true;
+        },
+      }, '全部忽略'));
+  }).catch(() => {});
+  return box;
+}
+
 function digestBar(apps, settings, now) {
   const limit = now.getTime() + 2 * 86400000;
   const items = actionItems(apps, settings, now).filter((it) => {

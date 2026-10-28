@@ -1,5 +1,6 @@
 // 粘贴测评 / AI 面试的邀请邮件 → 自动算出截止时间 → 存成日程。
 // 不保存邮件原文，只留解析出来的字段和一句依据。
+import { api } from '../api.js';
 import { store } from '../store.js';
 import { h, field, input, textarea, select, segmented, openModal, toast, openApp } from '../ui.js';
 import { EVENT_TYPES } from '../../shared/constants.js';
@@ -21,7 +22,8 @@ function appOptions(apps, company) {
     }));
 }
 
-export function openInviteForm() {
+/** pending：邮件一键导入已经解析好的一条，有就跳过粘贴这一步 */
+export function openInviteForm({ pending = null } = {}) {
   const s = store.state.settings;
   const apps = store.state.applications;
   let parsed = null;
@@ -88,7 +90,11 @@ export function openInviteForm() {
       return;
     }
     const companies = apps.map((a) => ({ company: a.company, companyEn: a.companyEn }));
-    parsed = parseInvite(raw, { receivedAt: new Date(), settings: s, companies });
+    apply(parseInvite(raw, { receivedAt: new Date(), settings: s, companies }));
+  }
+
+  function apply(result) {
+    parsed = result;
     draft.type = parsed.type;
     draft.durationMin = parsed.durationMin || 60;
     draft.link = parsed.link;
@@ -98,7 +104,7 @@ export function openInviteForm() {
     const match = apps.find((a) => a.company === parsed.company && a.status === 'active');
     draft.appId = match ? match.id : NEW_APP;
     draft.advance = Boolean(match && stageIndex(match.stage) < stageIndex('assessment'));
-    basis.textContent = parsed.basis ? `依据：「${parsed.basis}」。收到时间按现在算。` : '邮件里没写明期限，请自己填。';
+    basis.textContent = parsed.basis ? `依据：「${parsed.basis}」。` : '邮件里没写明期限，请自己填。';
     drawPreview();
   }
 
@@ -148,6 +154,7 @@ export function openInviteForm() {
         if (draft.advance && stageIndex(app.stage) < stageIndex('assessment')) patch.stage = 'assessment';
         await store.updateApplication(app.id, patch);
       }
+      if (pending) api.del(`/api/inbox/${pending.id}`).catch(() => {});
       close();
       toast(`已加入日程 · ${formatZoned(at, s.targetTz)}（${s.targetTzLabel}）`, {
         action: { label: '查看', onClick: () => openApp(app.id, { tab: 'events' }) },
@@ -166,6 +173,7 @@ export function openInviteForm() {
       { label: '存成日程', primary: true, onClick: save },
     ],
   });
-  setTimeout(() => paste.focus(), 0);
+  if (pending) apply(pending);
+  else setTimeout(() => paste.focus(), 0);
   return modal;
 }

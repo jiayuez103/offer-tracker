@@ -6,8 +6,9 @@ import { COLLECTIONS, ID_PREFIX } from '../shared/constants.js';
 import { prepareNewApplication, applyApplicationUpdate, validateApplication, newId } from '../shared/domain.js';
 import { buildCalendar } from '../shared/ics.js';
 import { parseJD } from '../shared/jdparse.js';
+import { parseInvite } from '../shared/invite.js';
 import { createAi, AiError } from './ai.js';
-import { todayInZone } from '../shared/time.js';
+import { todayInZone, formatZoned } from '../shared/time.js';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -254,6 +255,28 @@ export function createApp({ dataDir, rootDir, now = () => new Date(), fetchImpl 
 
     if (a === 'ping' && m === 'GET' && !b) return send(200, { ok: true, app: 'job-tracker', version: appVersion });
     if (a === 'version' && m === 'GET' && !b) return send(200, { version: store.version() });
+    // 邮件一键导入：只解析、只入队，绝不自动建日程（邮件是外部输入，认错一个日期比没认更危险）
+    if (a === 'inbox') {
+      if (m === 'GET' && !b) return send(200, store.readInbox());
+      if (m === 'POST' && !b) {
+        const { text = '' } = await readJson(req);
+        if (!String(text).trim()) throw new HttpError(400, '没有内容：先复制邮件正文再导入');
+        const settings = store.getSettings();
+        const companies = store.list('applications').map((x) => ({ company: x.company, companyEn: x.companyEn }));
+        const parsed = parseInvite(String(text), { receivedAt: now(), settings, companies });
+        const item = { id: newId('inb'), at: now().toISOString(), ...parsed };
+        const list = [item, ...store.readInbox()].slice(0, 50);
+        store.writeInbox(list);
+        const when = item.deadline
+          ? formatZoned(item.deadline, settings.targetTz) + `（${settings.targetTzLabel}）`
+          : '没认出期限，需要手填';
+        return send(200, { item, summary: `${item.company || '未知公司'} · ${item.type} · ${when}` });
+      }
+      if (m === 'DELETE' && b) {
+        store.writeInbox(store.readInbox().filter((x) => x.id !== b));
+        return send(200, { ok: true });
+      }
+    }
     if (a === 'parse-jd' && m === 'POST' && !b) {
       const { text = '', url = '' } = await readJson(req);
       return send(200, parseJD(String(text), String(url), now()));

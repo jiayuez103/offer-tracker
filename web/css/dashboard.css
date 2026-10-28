@@ -117,3 +117,5 @@
 .digest-item:hover { border-color: var(--accent); }
 .digest-item span { color: var(--text-2); }
 .digest-item.kind-overdue span, .digest-item.kind-deadline span { color: var(--danger); }
+.inbox-bar { border-color: var(--warn); background: var(--warn-soft); }
+.inbox-bar .digest-label { color: var(--warn); }

@@ -162,6 +162,21 @@ export function createStore(dataDir, { now = () => new Date() } = {}) {
   }
   const deleteJd = (id) => fs.rmSync(jdPath(id), { force: true });
 
+  // ---- 邮件导入的待确认队列 ----
+  const inboxFile = () => at('inbox.json');
+  function readInbox() {
+    try {
+      const list = JSON.parse(fs.readFileSync(inboxFile(), 'utf8'));
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  }
+  function writeInbox(list) {
+    atomicWrite(inboxFile(), `${JSON.stringify(list, null, 2)}\n`);
+    return list;
+  }
+
   // ---- AI 诊断与对话的缓存 ----
   function aiPath(id) {
     if (!SAFE_ID.test(id)) throw new StoreError('BAD_REQUEST', '非法 id');
@@ -215,6 +230,7 @@ export function createStore(dataDir, { now = () => new Date() } = {}) {
     getProfile, patchProfile, getSettings, patchSettings,
     readJd, writeJd, deleteJd,
     readAi, writeAi, deleteAi,
+    readInbox, writeInbox,
     saveResumeFile, resumeFilePath, deleteResumeFile,
     version,
   };
