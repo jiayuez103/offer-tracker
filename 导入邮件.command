@@ -1,13 +1,20 @@
 #!/bin/bash
 # 把剪贴板里的邮件正文送进 Tracker 的「待确认」队列，并弹一条通知。
-# 用法：选中邮件正文 → ⌘C → 双击本文件，或在「快捷指令」里绑定快捷键调用它。
+# 用法：选中邮件正文 → ⌘C → 按快捷键（或双击本文件）。快捷指令若把选中文本传给 stdin，则不用先复制。
 # 传参也行：导入邮件.command "邮件正文"（方便测试）
 PORT=7317
 URL="http://127.0.0.1:$PORT"
 
 notify() { osascript -e "display notification \"$1\" with title \"秋招 Tracker\"" >/dev/null 2>&1; }
 
-TEXT="${1:-$(pbpaste)}"
+# 取正文的三条路，按优先级：命令行参数（测试用）→ stdin（快捷指令送进来的选中文本）→ 剪贴板
+TEXT="$1"
+# 不是终端才读 stdin，而且限时 1 秒：管道开着却没内容时不能一直等
+if [ -z "$TEXT" ] && [ ! -t 0 ]; then
+  while IFS= read -r -t 1 line; do TEXT="$TEXT$line
+"; done
+fi
+if [ -z "$(printf '%s' "$TEXT" | tr -d '[:space:]')" ]; then TEXT="$(pbpaste)"; fi
 if [ -z "$(printf '%s' "$TEXT" | tr -d '[:space:]')" ]; then
   notify "剪贴板是空的：先选中邮件正文按 ⌘C"
   echo "剪贴板是空的"
