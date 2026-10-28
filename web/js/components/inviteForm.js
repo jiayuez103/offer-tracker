@@ -5,7 +5,7 @@ import { store } from '../store.js';
 import { h, field, input, textarea, select, segmented, openModal, toast, openApp } from '../ui.js';
 import { EVENT_TYPES } from '../../shared/constants.js';
 import { newId, stageIndex } from '../../shared/domain.js';
-import { parseInvite } from '../../shared/invite.js';
+import { parseInvite, deadlineFrom } from '../../shared/invite.js';
 import { zonedToISO, isoToLocalInput, dualTime, formatZoned } from '../../shared/time.js';
 
 const DURATIONS = [15, 30, 45, 60, 90, 120, 180].map((m) => ({ value: String(m), label: m < 60 ? `${m} 分钟` : `${m / 60} 小时` }));
@@ -27,7 +27,10 @@ export function openInviteForm({ pending = null } = {}) {
   const s = store.state.settings;
   const apps = store.state.applications;
   let parsed = null;
-  let local = '';
+  let local = '';                 // 算出来或手填的截止时间（本地输入格式）
+  let receivedLocal = '';         // 邮件收到时间
+  let win = { n: 5, unit: 'day' };// 窗口规则
+  let useWindow = true;           // true = 按「收到后 N 天」算，false = 直接填截止时间
   let tz = s.eventInputTz || s.targetTz;
   const draft = { type: '测评', durationMin: 60, link: '', appId: NEW_APP, company: '', position: '', advance: true };
 
@@ -38,23 +41,73 @@ export function openInviteForm({ pending = null } = {}) {
 
   const tzOptions = [{ value: s.targetTz, label: s.targetTzLabel }, { value: s.homeTz, label: s.homeTzLabel }];
 
+  /**
+   * 邮件正文里一般没有收到日期（它在信头，复制不到），所以让用户填「收到时间」，
+   * 截止时间由「收到时间 + 窗口」算出来 —— 用户不用自己心算 5 天后是哪天。
+   * 邮件写的是绝对日期（「请于 11 月 5 日前」）时，切到「直接填截止时间」。
+   */
   function timeRow() {
     const box = h('div', { class: 'tz-preview muted small' });
+    const rows = h('div', { class: 'form-grid full', style: { padding: 0 } });
+
     const draw = () => {
-      box.textContent = local ? `= ${dualTime(zonedToISO(local, tz), tz, s).secondary}` : '没认出期限，请手填截止时间';
-      box.classList.toggle('warn', !local);
+      if (useWindow) local = recompute();
+      if (!local) {
+        box.textContent = useWindow ? '填上收到时间就会自动算出截止时间' : '手动填一个截止时间';
+        box.classList.add('warn');
+      } else {
+        const iso = zonedToISO(local, tz);
+        box.textContent = `截止：${dualTime(iso, tz, s).primary} · ${dualTime(iso, tz, s).secondary}`;
+        box.classList.remove('warn');
+      }
     };
-    const whenInput = input({
-      type: 'datetime-local',
-      value: local,
-      onInput: (v) => { local = v; draw(); },
-    });
-    draw();
-    return [
-      field('截止时间', whenInput),
+
+    const recompute = () => {
+      if (!receivedLocal || !win.n) return '';
+      const at = deadlineFrom({ receivedAt: zonedToISO(receivedLocal, tz), window: win, tz });
+      return at ? isoToLocalInput(at, tz) : '';
+    };
+
+    const redraw = () => {
+      rows.replaceChildren(...(useWindow
+        ? [
+          field('邮件收到时间', input({
+            type: 'datetime-local',
+            value: receivedLocal,
+            onInput: (v) => { receivedLocal = v; draw(); },
+          })),
+          field('要求多久内完成', h('div', { class: 'row' },
+            input({
+              type: 'number',
+              value: String(win.n || ''),
+              cls: 'narrow',
+              onInput: (v) => { win = { ...win, n: Number(v) || 0 }; draw(); },
+            }),
+            segmented([{ value: 'day', label: '天' }, { value: 'business', label: '工作日' }], win.unit, (v) => {
+              win = { ...win, unit: v };
+              draw();
+            })), { tag: 'div' }),
+        ]
+        : [
+          field('截止时间', input({
+            type: 'datetime-local',
+            value: local,
+            onInput: (v) => { local = v; draw(); },
+          })),
+        ]),
       field('这个时间是', segmented(tzOptions, tz, (v) => { tz = v; draw(); }), { tag: 'div' }),
-      h('div', { class: 'field full' }, box),
-    ];
+      h('div', { class: 'field full' },
+        box,
+        h('button', {
+          class: 'link',
+          type: 'button',
+          onClick: () => { useWindow = !useWindow; redraw(); draw(); },
+        }, useWindow ? '邮件写的是具体日期？直接填截止时间' : '改回按「收到后 N 天」算')));
+      draw();
+    };
+
+    redraw();
+    return [rows];
   }
 
   function drawPreview() {
@@ -100,6 +153,10 @@ export function openInviteForm({ pending = null } = {}) {
     draft.link = parsed.link;
     draft.company = parsed.company;
     tz = parsed.tz || tz;
+    // 窗口规则认出来了就走「收到时间 + 窗口」；邮件写的是绝对日期就直接填截止
+    useWindow = Boolean(parsed.window);
+    if (parsed.window) win = parsed.window;
+    receivedLocal = isoToLocalInput(parsed.windowStart || new Date().toISOString(), tz);
     local = parsed.deadline ? isoToLocalInput(parsed.deadline, tz) : '';
     const match = apps.find((a) => a.company === parsed.company && a.status === 'active');
     draft.appId = match ? match.id : NEW_APP;
@@ -129,7 +186,7 @@ export function openInviteForm({ pending = null } = {}) {
       tz,
       durationMin: draft.durationMin,
       location: draft.link,
-      windowStart: parsed ? parsed.windowStart : new Date().toISOString(),
+      windowStart: receivedLocal ? zonedToISO(receivedLocal, tz) : (parsed ? parsed.windowStart : new Date().toISOString()),
       basis: parsed ? parsed.basis : '',
       done: false,
       review: null,

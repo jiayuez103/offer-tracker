@@ -88,6 +88,17 @@ function businessDeadline(receivedAt, n, tz) {
   return zonedToISO(`${day}T18:00`, tz);
 }
 
+/** 收到时间 + 窗口规则 → 截止时间（UTC ISO）。收到时间改了就重算，不用重新解析邮件 */
+export function deadlineFrom({ receivedAt, window, tz = 'Asia/Shanghai' }) {
+  if (!window || !window.n) return '';
+  const start = receivedAt instanceof Date ? receivedAt : new Date(receivedAt);
+  if (Number.isNaN(start.getTime())) return '';
+  const at = window.unit === 'business'
+    ? businessDeadline(start, Number(window.n), tz)
+    : new Date(start.getTime() + Number(window.n) * DAY).toISOString();
+  return new Date(at).toISOString();
+}
+
 /** 「X 天内」「X 个工作日内」「within X business days」 */
 function relativeDeadline(text, receivedAt, tz) {
   const zh = /([0-9]+|[零一二三四五六七八九十]+)\s*(?:个)?\s*(工作日|自然日|天|日)\s*(?:之)?内/.exec(text);
@@ -97,10 +108,8 @@ function relativeDeadline(text, receivedAt, tz) {
   const n = zhNumber(hit[1]);
   if (!n) return null;
   const isBusiness = zh ? hit[2] === '工作日' : Boolean(hit[2]);
-  return {
-    at: isBusiness ? businessDeadline(receivedAt, n, tz) : new Date(receivedAt.getTime() + n * DAY).toISOString(),
-    basis: snippet(text, hit.index, hit[0].length),
-  };
+  const window = { n, unit: isBusiness ? 'business' : 'day' };
+  return { at: deadlineFrom({ receivedAt, window, tz }), basis: snippet(text, hit.index, hit[0].length), window };
 }
 
 /** 「2026年10月15日 24:00 前」「10月13日」「2026-10-15」「Oct 15」 */
@@ -143,7 +152,8 @@ export function parseInvite(text, { receivedAt = new Date(), settings = DEFAULT_
   const body = String(text || '');
   // 没写时区的日期：中文邮件按北京，英文邮件按本地
   const tz = /[一-龥]/.test(body) ? s.eventInputTz || s.targetTz : s.homeTz;
-  const candidates = [relativeDeadline(body, receivedAt, tz), absoluteDeadline(body, receivedAt, tz)]
+  const rel = relativeDeadline(body, receivedAt, tz);
+  const candidates = [rel, absoluteDeadline(body, receivedAt, tz)]
     .filter(Boolean)
     .map((c) => ({ ...c, at: new Date(c.at).toISOString() })); // 统一成 UTC，调用方不用管是哪条规则算出来的
   candidates.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
@@ -153,6 +163,8 @@ export function parseInvite(text, { receivedAt = new Date(), settings = DEFAULT_
     mode: 'deadline',
     deadline: hit ? hit.at : '',
     basis: hit ? hit.basis : '',
+    // 取了相对期限时把规则也给出去：用户改收到时间就能重算，不用重新解析
+    window: hit && hit.window ? hit.window : null,
     windowStart: receivedAt.toISOString(),
     durationMin: guessDuration(body),
     link: pickLink(body),

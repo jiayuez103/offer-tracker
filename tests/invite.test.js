@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseInvite, zhNumber, guessType, guessDuration, pickLink } from '../shared/invite.js';
+import { parseInvite, zhNumber, guessType, guessDuration, pickLink, deadlineFrom } from '../shared/invite.js';
 import { DEFAULT_SETTINGS } from '../shared/constants.js';
 
 // 洛杉矶 2026-10-12 02:42（周一），北京 10/12 17:42
@@ -113,4 +113,25 @@ test('依据片段从整句开始', () => {
 test('依据片段不拖着链接尾巴', () => {
   const r = parse('请在三个工作日内完成。\nhttps://assess.example.com/t/1');
   assert.equal(r.basis, '请在三个工作日内完成。');
+});
+
+test('解析出「窗口规则」，而不只是算好的日期', () => {
+  assert.deepEqual(parse('请在收到本邮件后的5天内完成面试。').window, { n: 5, unit: 'day' });
+  assert.deepEqual(parse('We ask that you complete within 3 business days.').window, { n: 3, unit: 'business' });
+  assert.deepEqual(parse('请您在五天内完成测评。').window, { n: 5, unit: 'day' });
+  assert.equal(parse('请于 2026年10月15日 24:00 前完成测评。').window, null); // 绝对日期没有窗口
+});
+
+test('换一个收到时间，截止时间跟着重算', () => {
+  const twoDaysAgo = '2026-10-10T02:42:00-07:00';
+  assert.equal(
+    deadlineFrom({ receivedAt: twoDaysAgo, window: { n: 5, unit: 'day' }, tz: 'America/Los_Angeles' }),
+    iso('2026-10-15T02:42:00-07:00'),
+  );
+  // 工作日：周日收到 → 周一二三
+  assert.equal(
+    deadlineFrom({ receivedAt: '2026-10-11T19:30:00-07:00', window: { n: 3, unit: 'business' }, tz: 'America/Los_Angeles' }),
+    iso('2026-10-14T18:00:00-07:00'),
+  );
+  assert.equal(deadlineFrom({ receivedAt: twoDaysAgo, window: null, tz: 'America/Los_Angeles' }), '');
 });

@@ -334,3 +334,4 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .view { padding: 16px; }
   .topbar { padding: 12px 16px; }
 }
+.narrow { width: 72px; }
