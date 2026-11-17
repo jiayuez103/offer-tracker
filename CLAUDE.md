@@ -65,6 +65,7 @@ curl -s -X PUT $API/applications/<id>/jd -H 'Content-Type: application/json' -d 
 - 时间：用户说的面试时间没带时区时，按 `settings.eventInputTz` 理解，并在回复里把两个时区都说出来
 - 绝不存身份证号、护照号、密码；`account` 只放注册用的邮箱或手机号
 - 代码、提交信息、`docs/` 里不写任何个人信息（以后可能公开部署）
+- README 有中英两份：`README.md`（中文，GitHub 默认显示）和 `README.en.md`（英文），顶部互相链接；改一份要同步改另一份
 - 保持零依赖、无构建；数据读写只放在 `server/store.js`；业务规则放 `shared/`，网页和服务端共用
 
 ## 界面风格（web/ 和插件侧边栏）
