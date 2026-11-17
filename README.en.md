@@ -22,7 +22,7 @@ The look is a retro desktop: cream paper, black outlines, hard shadows and pixel
 
 ![Application board](docs/screenshots/board.png)
 
-**日程 Schedule**: assessments, interviews and application deadlines by day, with both time zones side by side. Subscribe in Apple Calendar from the panel on the right; deadline-type events ring twice. 「粘贴邀请」 (Paste invite) turns "within 5 days of receiving this email" in an assessment email into an actual date and time.
+**日程 Schedule**: assessments, interviews and application deadlines by day, with both time zones side by side. Subscribe in Apple Calendar from the panel on the right; deadline-type events ring twice. 「粘贴测评邀请」 (Paste assessment invite) turns "within 5 days of receiving this email" in an assessment email into an actual date and time.
 
 ![Schedule](docs/screenshots/calendar.png)
 
@@ -96,7 +96,7 @@ Set up the shortcut (once):
 
 Double-clicking `导入邮件.command` (Import email) does the same thing.
 
-**By hand**: no need to work out "within 5 days of receiving this email" or "within 3 working days" yourself. On the Schedule page (or the strip at the top of the Overview), click 「粘贴邀请」 (Paste invite) and paste the whole email body. It recognises the company, assessment type, duration and link, turns the time limit into an actual date and time, and saves it as an event once you confirm. If it can't find the time limit, it leaves the field empty for you rather than guessing. Only the parsed result is kept, not the email itself.
+**By hand**: no need to work out "within 5 days of receiving this email" or "within 3 working days" yourself. Click 「粘贴测评邀请」 (Paste assessment invite) in the top menu bar and paste the whole email body. It recognises the company, assessment type, duration and link, turns the time limit into an actual date and time, and saves it as an event once you confirm. If it can't find the time limit, it leaves the field empty for you rather than guessing. Only the parsed result is kept, not the email itself.
 
 Once saved, the Today & tomorrow strip on the Overview keeps counting down until you tick the event off on the Schedule page.
 
@@ -116,7 +116,7 @@ Open Claude Code in this folder and just say things like:
 - "Here is the JD for XX — create an application and check how well my résumé matches"
 - "What deadlines and interviews do I have this week?" / "Which applications have gone quiet?"
 
-Claude edits the data following the rules in `CLAUDE.md`; if the web page is open, it refreshes within a few seconds.
+Claude edits the data following the rules in `AGENTS.md`; if the web page is open, it refreshes within a few seconds.
 
 ## Chrome extension (秋招助手)
 
