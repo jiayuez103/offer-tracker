@@ -8,10 +8,11 @@ import { formatZoned } from '../../shared/time.js';
 const MODES = [['resume', '改简历'], ['interview', '面试准备']];
 const CATS = [['行为', '行为题（追问你的经历）'], ['业务', '业务题（JD 的专业要求）'], ['动机', '动机题'], ['反问', '你该反问什么']];
 
+// [文字, 底色, 图标]：三样一起出现，不靠颜色单独表达
 const MATCH = {
-  strong: ['有硬证据', 'ok'],
-  partial: ['沾边', 'warn'],
-  missing: ['缺', 'bad'],
+  strong: ['有硬证据', 'ok', 'check'],
+  partial: ['沾边', 'warn', 'alert'],
+  missing: ['缺', 'bad', 'x'],
 };
 
 export function aiPane(app, { onNeedJd } = {}) {
@@ -133,9 +134,9 @@ export function aiPane(app, { onNeedJd } = {}) {
         ? h('div', { class: 'ai-section' },
           h('h4', null, 'JD 要求逐条对照'),
           h('ul', { class: 'ai-reqs' }, d.requirements.map((r) => {
-            const [label, cls] = MATCH[r.match] || ['不确定', 'warn'];
+            const [label, cls, ic] = MATCH[r.match] || ['不确定', 'warn', 'alert'];
             return h('li', null,
-              h('span', { class: `ai-flag ${cls}` }, label),
+              h('span', { class: 'ai-flag-cell' }, h('span', { class: `flag ${cls}` }, icon(ic), label)),
               h('span', { class: 'grow' }, h('b', null, r.text || ''), r.evidence ? h('span', { class: 'muted small' }, ` — ${r.evidence}`) : null));
           })))
         : null,
@@ -171,7 +172,7 @@ export function aiPane(app, { onNeedJd } = {}) {
     log.scrollTop = log.scrollHeight;
   }
 
-  const box = h('textarea', { rows: 2, placeholder: '比如：把群玉山那段改得更偏渠道，两行以内' });
+  const box = h('textarea', { class: 'textarea', rows: 2, placeholder: '比如：把某段经历改得更偏渠道，两行以内' });
   const sendBtn = h('button', { class: 'btn primary', type: 'button' }, '发送');
 
   async function send() {

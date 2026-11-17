@@ -29,6 +29,7 @@ export function openNewApp(preset = {}) {
       data[key] = el.value;
       edited.add(key);
       autoFilled.delete(key);
+      el.classList.remove('filled'); // 手改过就不再是「自动认出来的」
     });
     controls[key] = el;
     return el;

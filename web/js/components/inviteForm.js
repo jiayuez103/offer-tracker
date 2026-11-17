@@ -2,7 +2,7 @@
 // 不保存邮件原文，只留解析出来的字段和一句依据。
 import { api } from '../api.js';
 import { store } from '../store.js';
-import { h, field, input, textarea, select, segmented, openModal, toast, openApp } from '../ui.js';
+import { h, field, input, textarea, select, segmented, openModal, toast, openApp, ensureCss } from '../ui.js';
 import { EVENT_TYPES } from '../../shared/constants.js';
 import { newId, stageIndex } from '../../shared/domain.js';
 import { parseInvite, deadlineFrom } from '../../shared/invite.js';
@@ -24,6 +24,7 @@ function appOptions(apps, company) {
 
 /** pending：邮件一键导入已经解析好的一条，有就跳过粘贴这一步 */
 export function openInviteForm({ pending = null } = {}) {
+  ensureCss('/css/components.css'); // 截止时间预览那块的样式在这里；从概览页直接打开时还没加载过
   const s = store.state.settings;
   const apps = store.state.applications;
   let parsed = null;

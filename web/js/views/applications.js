@@ -42,7 +42,7 @@ export function render(root, { params }) {
   ensureCss('/css/applications.css');
   const prefs = loadPrefs();
   const q = (params.get('q') || '').trim().toLowerCase();
-  const toolbar = h('div', { class: 'apps-toolbar' });
+  const toolbar = h('div', { class: 'apps-toolbar strip' });
   const content = h('div', { class: 'apps-content' });
   root.append(toolbar, content);
 
@@ -84,6 +84,7 @@ function renderToolbar(prefs, redraw, q, count) {
       h('button', { type: 'button', 'aria-label': '清除搜索', onClick: () => { location.hash = '#/applications'; } }, '×')) : null,
     h('span', { class: 'spacer' }),
     h('span', { class: 'apps-count' }, `共 ${count} 条`),
+    h('button', { class: 'btn primary', type: 'button', onClick: () => openNewApp() }, icon('plus'), '新建投递'),
   ];
 }
 
@@ -149,7 +150,9 @@ function renderBoard(apps, prefs, redraw) {
     bindDrop(column, col.key);
     board.append(column);
   }
-  return board;
+  return h('section', { class: 'card board-window' },
+    h('div', { class: 'card-head' }, h('h3', null, '投递看板'), h('span', { class: 'head-meta' }, '拖动卡片改阶段')),
+    h('div', { class: 'card-body' }, board));
 }
 
 function cardFoot(app, now) {
@@ -279,18 +282,25 @@ function renderList(apps, prefs, redraw) {
     const ev = nextEvent(a, now);
     const days = daysSinceProgress(a, now);
     const deadlineLeft = a.deadline && a.stage === 'wishlist' ? daysUntil(a.deadline, settings.targetTz, now) : null;
+    const urgent = deadlineLeft != null && deadlineLeft <= 3;
+    const stale = isStale(a, settings, now);
     return h('tr', { onClick: () => openApp(a.id) },
       h('td', { class: 'cell-company' }, h('b', null, a.company || a.companyEn || '未命名公司'), a.company && a.companyEn ? h('span', { class: 'cell-sub' }, a.companyEn) : null),
       h('td', null, a.position || '—'),
       h('td', null, a.track ? h('span', { class: ['chip', trackClass(a.track)] }, a.track) : ''),
       h('td', null, stageChip(a)),
       h('td', null, a.appliedAt || '—'),
-      h('td', { class: deadlineLeft != null && deadlineLeft <= 3 ? 'urgent-text' : '' },
-        a.deadline || '—', deadlineLeft != null && deadlineLeft >= 0 ? h('span', { class: 'cell-sub' }, ` 剩 ${deadlineLeft} 天`) : null),
+      h('td', { class: urgent ? 'urgent-text' : '' },
+        a.deadline || '—',
+        deadlineLeft != null && deadlineLeft >= 0
+          ? (urgent ? h('span', { class: 'flag warn' }, icon('alert'), `剩 ${deadlineLeft} 天`) : h('span', { class: 'cell-sub' }, ` 剩 ${deadlineLeft} 天`))
+          : null),
       h('td', null, ev ? `${ev.type} · ${dualTime(ev.at, ev.tz, settings).primary}` : '—'),
-      h('td', { class: isStale(a, settings, now) ? 'stale-text' : '' }, days === 0 ? '今天' : `${days} 天前`));
+      h('td', { class: stale ? 'stale-text' : '' }, stale ? icon('alert') : null, days === 0 ? '今天' : `${days} 天前`));
   });
 
-  return h('div', { class: 'card table-wrap' },
-    h('table', { class: 'apps-table' }, h('thead', null, head), h('tbody', null, body)));
+  return h('section', { class: 'card list-window' },
+    h('div', { class: 'card-head' }, h('h3', null, '投递列表'), h('span', { class: 'head-meta' }, '点表头排序')),
+    h('div', { class: 'table-wrap' },
+      h('table', { class: 'apps-table' }, h('thead', null, head), h('tbody', null, body))));
 }

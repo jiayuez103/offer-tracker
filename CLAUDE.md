@@ -65,7 +65,16 @@ curl -s -X PUT $API/applications/<id>/jd -H 'Content-Type: application/json' -d 
 - 时间：用户说的面试时间没带时区时，按 `settings.eventInputTz` 理解，并在回复里把两个时区都说出来
 - 绝不存身份证号、护照号、密码；`account` 只放注册用的邮箱或手机号
 - 代码、提交信息、`docs/` 里不写任何个人信息（以后可能公开部署）
+- README 有中英两份：`README.md`（中文，GitHub 默认显示）和 `README.en.md`（英文），顶部互相链接；改一份要同步改另一份
 - 保持零依赖、无构建；数据读写只放在 `server/store.js`；业务规则放 `shared/`，网页和服务端共用
+
+## 界面风格（web/ 和插件侧边栏）
+
+- 复古桌面风：奶油色纸面、2px 黑描边、不带模糊的硬阴影、像素图标。颜色和尺寸只在 `web/css/base.css` 的 `:root` 里定义，别处一律用变量；只有浅色一套，没有深色模式
+- 每块内容是一个「窗口」：`.card` > `.card-head`（标题栏：左边两个圆点，标题居中，右侧可放一个小按钮或链接）+ `.card-body`；JS 里可用 `ui.js` 的 `windowCard()`。投递详情是浮在右侧的窗口（`openDrawer`），弹窗是激活状态的窗口（青色标题栏）
+- 阶段色 `--st-*` 是同一个青绿由浅到深（阶段有先后），文字始终是黑的，色块旁边一定有文字；提醒 / 警告 / 出错用底色 + 图标 + 文字（`.flag`、`.toast.error`），不能只靠颜色
+- 图标是 `web/js/pixel.js` 里 16×16 的位图，用 `icon('名字')` 取；加图标就在 `ICONS` 里加一份位图，`tests/pixel.test.js` 会检查格式，也会检查网页里用到的图标都画了。大数字用 `pixelText()` 画成像素字
+- 插件侧边栏在 shadow root 里，样式是 `extension/content/panel.js` 里的 `STYLE`，颜色和网页保持一致
 
 ## AI（settings.ai + server/ai.js）
 

@@ -1,8 +1,8 @@
-// 投递详情抽屉：基本信息 / 日程与复盘 / JD / 时间线。输入框失焦即保存。
+// 投递详情窗口（浮在页面右侧）：基本信息 / 日程与复盘 / JD / AI / 时间线。输入框失焦即保存。
 import { store } from '../store.js';
 import {
   h, icon, openDrawer, field, input, textarea, select, stars, attempt, toast,
-  confirmDialog, copyText, safeUrl, timeAgo, ensureCss, repaintWhenIdle,
+  confirmDialog, copyText, safeUrl, timeAgo, ensureCss, repaintWhenIdle, eventChip,
 } from '../ui.js';
 import {
   STAGES, STAGE_LABEL, STATUS_LABEL, COMPANY_TYPES, TRACKS, BATCHES, CHANNELS,
@@ -35,6 +35,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
   let currentTab = tab;
   let unsubscribe = () => {};
   const drawer = openDrawer({
+    title: '投递详情',
     onClose: () => {
       unsubscribe();
       if (current === drawer) current = null;
@@ -215,7 +216,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
       h('div', { class: 'event-main' },
         h('input', { type: 'checkbox', checked: !!ev.done, title: '标记为已完成', onChange: (e) => updateEvent(ev.id, { done: e.target.checked }) }),
         h('div', { class: 'event-text' },
-          h('div', { class: 'event-title' }, h('span', { class: 'chip accent' }, ev.type), ev.title || ''),
+          h('div', { class: 'event-title' }, eventChip(ev.type), ev.title || ''),
           h('div', { class: 'event-time' }, t.primary, h('span', { class: 'muted' }, ` · ${t.secondary}`)),
           ev.location
             ? h('div', { class: 'event-loc' }, link ? h('a', { href: link, target: '_blank', rel: 'noopener' }, icon('link'), '打开会议链接') : ev.location)

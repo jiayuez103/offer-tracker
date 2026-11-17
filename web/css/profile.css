@@ -1,42 +1,52 @@
-.pf { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 24px; max-width: 1140px; }
-.pf-nav { position: sticky; top: 0; align-self: start; display: flex; flex-direction: column; gap: 2px; padding-top: 52px; }
-.pf-nav a { padding: 5px 10px; border-radius: var(--radius-sm); color: var(--text-2); font-size: 13px; }
-.pf-nav a:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
-.pf-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.pf-bar {
-  position: sticky; top: -24px; z-index: 5;
-  display: flex; align-items: center; gap: 10px;
-  margin: -24px 0 -4px; padding: 16px 0 10px;
-  background: var(--bg);
+.pf { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 16px; max-width: 1320px; }
+.pf-nav {
+  position: sticky; top: 0; align-self: start;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px;
+  border: 2px solid var(--ink); border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
 }
-.pf-status { color: var(--text-3); font-size: 12.5px; }
-.pf-status.pending, .pf-status.saving { color: var(--accent-text); }
-.pf-status.saved { color: var(--ok); }
-.pf-status.error { color: var(--danger); }
-.pf-note { padding: 10px 14px; border-radius: var(--radius); background: var(--accent-soft); color: var(--accent-text); font-size: 13px; }
+.pf-nav a { padding: 6px 8px; border-radius: var(--radius-sm); color: var(--ink-2); font-size: 12px; font-weight: 500; text-decoration: none; }
+.pf-nav a:hover { background: var(--teal-soft); color: var(--ink); }
+.pf-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pf-bar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  border: 2px solid var(--ink); border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+}
+/* 保存状态：底色之外，文字本身就写明了状态 */
+.pf-status { padding: 1px 8px; border: 2px solid var(--ink); border-radius: var(--radius-sm); background: var(--surface-2); font-size: 12px; font-weight: 700; }
+.pf-status.pending, .pf-status.saving { background: var(--butter); }
+.pf-status.saved { background: var(--ok-soft); }
+.pf-status.error { background: var(--danger-soft); }
+.pf-note { padding: 8px 12px; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--butter); font-size: 12px; }
 
-.pf-section { padding: 16px 18px 18px; scroll-margin-top: 56px; }
-.pf-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.pf-head h2 { font-size: 15px; }
-.pf-hint { margin: -4px 0 12px; }
-.pf-entries { display: flex; flex-direction: column; gap: 14px; }
-.pf-entry { padding: 12px 14px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.pf-section { scroll-margin-top: 60px; }
+.pf-section .card-body { padding: 14px 16px 16px; }
+.pf-entries { display: flex; flex-direction: column; gap: 12px; }
+.pf-entry { padding: 12px; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--surface-2); }
 .pf-entry-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .pf-entry-index {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--surface-3); color: var(--text-2);
-  font-size: 11px; font-weight: 600;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ink); color: var(--surface);
+  font: 700 11px var(--mono);
 }
 .pf-entry-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* 中英并排 */
+/* 中英并排：输入框里左边一个小标签 */
 .bi { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .bi-cell { position: relative; display: block; }
-.bi-cell .input { padding-left: 32px; }
+.bi-cell .input { padding-left: 40px; }
 .bi-tag {
-  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
-  color: var(--text-3); font-size: 10.5px; font-weight: 600;
+  position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  min-width: 26px; padding: 0 4px; border-radius: 3px;
+  background: var(--surface-3); color: var(--ink-2);
+  font: 11px/20px var(--mono); text-align: center;
   pointer-events: none;
 }
 .bi.long .textarea { min-height: 116px; }

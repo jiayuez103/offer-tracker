@@ -1,89 +1,93 @@
-.apps-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-.apps-toolbar .select { width: auto; min-width: 112px; }
-.apps-count { color: var(--text-3); font-size: 13px; }
-.search-chip { height: 26px; padding: 0 4px 0 10px; font-size: 12.5px; }
-.search-chip button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 15px; padding: 0 4px; }
+.apps-toolbar { margin-bottom: 14px; }
+.apps-toolbar .select { width: auto; min-width: 118px; }
+.apps-count { color: var(--ink-2); font: 12px var(--mono); }
+.search-chip { height: 26px; padding: 0 4px 0 10px; }
+.search-chip button { padding: 0 4px; border: 0; background: none; color: inherit; font-size: 15px; cursor: pointer; }
 
-.apps-welcome { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 18px 20px; margin-bottom: 16px; }
+.apps-welcome { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 16px 20px; margin-bottom: 14px; }
 .apps-welcome p { margin: 4px 0 0; }
 
-/* 看板：6 列进行中 + 「已结束」；收起时「已结束」是一条 44px 的窄边 */
+/* 看板：一个窗口里 6 条泳道 + 「已结束」；收起时「已结束」是一条 44px 的窄边 */
+.board-window .card-body { padding: 12px; }
 .board {
   display: grid;
-  grid-template-columns: repeat(7, minmax(176px, 1fr));
-  gap: 12px;
-  align-items: start;
+  grid-template-columns: repeat(7, minmax(172px, 1fr));
+  gap: 10px;
+  /* 泳道撑满窗口：卡片少的时候整条泳道也都能接住拖过来的卡片；卡片多了在泳道里滚动 */
+  align-items: stretch;
+  height: calc(100vh - 252px); min-height: 320px;
   overflow-x: auto;
-  padding-bottom: 12px;
 }
-.board.closed-collapsed { grid-template-columns: repeat(6, minmax(176px, 1fr)) 44px; }
-.col.collapsed { align-items: center; gap: 10px; min-height: 180px; padding: 12px 0; cursor: pointer; }
-.col.collapsed:hover, .col.collapsed:focus-visible { background: var(--surface-3); outline: none; }
-.col.collapsed .col-count { margin: 0; }
-.col-vlabel { writing-mode: vertical-rl; letter-spacing: 0.2em; color: var(--text-2); font-size: 13px; font-weight: 600; }
-.col-head .btn { margin: -4px -6px -4px 0; }
+.board.closed-collapsed { grid-template-columns: repeat(6, minmax(172px, 1fr)) 44px; }
 .col {
   display: flex; flex-direction: column;
-  max-height: calc(100vh - 190px);
+  min-height: 0;
+  border: 2px solid transparent; border-radius: var(--radius);
   background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
   transition: border-color 0.12s, background 0.12s;
 }
-.col.drop { border-color: var(--accent); background: var(--accent-soft); }
-.col-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
-.col-count { margin-left: auto; color: var(--text-3); font-weight: 500; font-variant-numeric: tabular-nums; }
-.col-list { display: flex; flex-direction: column; gap: 8px; padding: 0 8px 10px; overflow-y: auto; min-height: 64px; }
+/* 拖到这条泳道上方：虚线框 + 浅青底，松手就放进去 */
+.col.drop { border: 2px dashed var(--ink); background: var(--teal-softer); }
+.col-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px; font-weight: 700; }
+.col-count { margin-left: auto; color: var(--ink-2); font: 700 13px var(--mono); }
+.col-head .btn { margin: -4px -6px -4px 0; }
+/* 右边和下边给卡片的硬阴影留位置 */
+.col-list { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 64px; padding: 2px 10px 12px 8px; overflow: hidden auto; }
 .col-empty {
   padding: 14px 8px;
-  border: 1px dashed var(--border-strong); border-radius: var(--radius);
-  color: var(--text-3); font-size: 12px; text-align: center;
+  border: 2px dashed var(--ink-3); border-radius: var(--radius);
+  color: var(--ink-2); font-size: 12px; text-align: center;
 }
+.col.collapsed { align-items: center; gap: 10px; padding: 12px 0; background: var(--surface-3); cursor: pointer; }
+.col.collapsed:hover, .col.collapsed:focus-visible { background: var(--st-closed); }
+.col.collapsed .col-count { margin: 0; }
+.col-vlabel { writing-mode: vertical-rl; letter-spacing: 0.2em; color: var(--ink-2); font-size: 12px; font-weight: 700; }
 
 .app-card {
   display: flex; flex-direction: column; gap: 6px;
   padding: 10px 12px;
   border-radius: var(--radius);
+  box-shadow: var(--shadow-3);
   cursor: pointer;
-  transition: box-shadow 0.12s, border-color 0.12s, opacity 0.12s;
+  transition: transform 0.08s, box-shadow 0.08s, opacity 0.12s;
 }
-.app-card:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
-.app-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.app-card.dragging { opacity: 0.4; }
-.app-card.closed { opacity: 0.75; }
-.card-top { display: flex; align-items: center; gap: 6px; }
-.card-company { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-position { color: var(--text-2); font-size: 13px; line-height: 1.4; }
+.app-card:hover { transform: translate(-1px, -1px); box-shadow: var(--shadow-4); }
+.app-card.dragging { opacity: 0.45; transform: rotate(-3deg); }
+.app-card.closed { opacity: 0.7; box-shadow: none; }
+.card-top { display: flex; align-items: flex-start; gap: 6px; }
+.card-company { flex: 1; min-width: 0; overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.app-card .stars { margin-top: 3px; }
+.app-card .stars .icon { width: 12px; height: 12px; }
+.card-position { color: var(--ink-2); font-size: 12px; line-height: 1.4; }
 .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .card-tags:empty { display: none; }
-.card-meta { display: flex; align-items: center; gap: 5px; color: var(--text-3); font-size: 12px; }
-.card-meta .icon { width: 13px; height: 13px; }
-.card-meta.upcoming { color: var(--st-interview); }
-.card-meta.urgent { color: var(--danger); }
-.card-meta.stale { color: var(--warn); }
-
-.chip.market { background: #e3f3ef; color: #1f7a6c; }
-@media (prefers-color-scheme: dark) {
-  .chip.market { background: #17302b; color: #5cc5b0; }
-}
+/* 城市写了一长串时，标签在卡片里截断（详情里能看到全文），不把泳道撑出横向滚动条 */
+.card-tags .chip { display: inline-block; max-width: 100%; overflow: hidden; line-height: 18px; text-overflow: ellipsis; }
+.card-meta { display: flex; align-items: center; gap: 5px; color: var(--ink-2); font-size: 11.5px; }
+.card-meta .icon { width: 12px; height: 12px; }
+/* 要留意的几种状态：图标 + 加粗的黑字，不靠颜色区分 */
+.card-meta.upcoming, .card-meta.urgent, .card-meta.stale { color: var(--ink); font-weight: 600; }
 
 /* 列表 */
-.table-wrap { overflow: auto; }
-.apps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.list-window { overflow: hidden; }
+.table-wrap { overflow: auto; padding: 8px 14px 10px; }
+.apps-table { width: 100%; border-collapse: collapse; }
 .apps-table th {
   position: sticky; top: 0;
-  padding: 10px 12px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  color: var(--text-3); font-weight: 500; text-align: left; white-space: nowrap;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  color: var(--ink-2); font-size: 12px; font-weight: 500; text-align: left; white-space: nowrap;
 }
+.apps-table th:first-child { border-radius: 6px 0 0 6px; }
+.apps-table th:last-child { border-radius: 0 6px 6px 0; }
 .apps-table th.sortable { cursor: pointer; user-select: none; }
-.apps-table th.sorted { color: var(--text); }
-.apps-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.apps-table th.sortable:hover, .apps-table th.sorted { color: var(--ink); font-weight: 700; }
+.apps-table td { padding: 9px 10px; border-bottom: 1px dashed var(--ink-3); vertical-align: middle; }
 .apps-table tbody tr { cursor: pointer; }
-.apps-table tbody tr:hover { background: var(--surface-2); }
+.apps-table tbody tr:hover { background: var(--teal-softer); }
 .apps-table tbody tr:last-child td { border-bottom: 0; }
-.cell-company b { display: block; font-weight: 600; }
-.cell-sub { color: var(--text-3); font-size: 12px; }
-.stale-text { color: var(--warn); }
-.urgent-text { color: var(--danger); }
+.cell-company b { display: block; font-weight: 700; }
+.cell-sub { color: var(--ink-3); font-size: 11.5px; }
+.stale-text { font-weight: 700; }
+.stale-text .icon { margin-right: 4px; vertical-align: -3px; }
+.urgent-text .flag { margin-left: 6px; }

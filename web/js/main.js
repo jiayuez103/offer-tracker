@@ -1,6 +1,7 @@
-// 入口：加载数据、路由（#/页面?参数）、侧边栏徽标和双时区时钟、全局搜索和快捷键。
+// 入口：加载数据、路由（#/页面?参数）、导航徽标和菜单栏里的双时区时钟、全局搜索和快捷键。
 import { store } from './store.js';
-import { h, hydrateIcons, debounce, openNewApp } from './ui.js';
+import { h, hydrateIcons, debounce, openNewApp, openInvite } from './ui.js';
+import { pixelText } from './pixel.js';
 import { actionItems } from '../shared/domain.js';
 import { formatZoned } from '../shared/time.js';
 
@@ -67,6 +68,7 @@ function renderClock() {
 
 function bindGlobal() {
   document.getElementById('new-app-btn').addEventListener('click', () => openNewApp());
+  document.getElementById('invite-btn').addEventListener('click', () => openInvite());
   search.addEventListener('input', debounce(() => {
     const q = search.value.trim();
     const target = `#/applications${q ? `?q=${encodeURIComponent(q)}` : ''}`;
@@ -88,6 +90,8 @@ function bindGlobal() {
 
 async function boot() {
   hydrateIcons();
+  // logo 的字用像素字画出来；读屏软件读到的还是原文字
+  for (const el of document.querySelectorAll('[data-pixel]')) el.replaceChildren(pixelText(el.dataset.pixel, 14));
   bindGlobal();
   try {
     await store.load();

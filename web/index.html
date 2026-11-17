@@ -4,39 +4,42 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>秋招 Tracker</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f5bd5'/%3E%3Cpath d='M9 17l5 5 9-11' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Cpath fill='%231e1e1e' d='M1 2h14v12H1z'/%3E%3Cpath fill='%23a9d8d5' d='M2 3h12v10H2z'/%3E%3Cpath fill='%231e1e1e' d='M11 4h2v1h-2zM10 5h3v1h-3zM9 6h3v1H9zM3 7h2v1H3zM8 7h3v1H8zM3 8h3v1H3zM7 8h3v1H7zM4 9h5v1H4zM5 10h3v1H5zM6 11h1v1H6z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/css/base.css">
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <span class="brand-name">秋招 Tracker</span>
+    <header class="menubar">
+      <a class="brand" href="#/dashboard" aria-label="offer-tracker，回到概览">
+        <span class="brand-mark" data-icon="logo"></span>
+        <span class="brand-name" data-pixel="offer-tracker">offer-tracker</span>
+      </a>
+      <h1 id="page-title" class="sr-only">概览</h1>
+      <div class="menu">
+        <button class="menu-item" id="new-app-btn" type="button" title="快捷键 N">新建投递</button>
+        <button class="menu-item" id="invite-btn" type="button" title="把测评 / 面试邀请邮件粘进来">粘贴邀请</button>
       </div>
+      <span class="spacer"></span>
+      <label class="search">
+        <span class="search-icon" data-icon="search"></span>
+        <input id="global-search" type="search" placeholder="搜索公司、岗位、城市" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+      <div class="clock" id="clock"></div>
+    </header>
+    <aside class="sidebar">
       <nav class="nav" id="nav">
-        <a href="#/dashboard" data-route="dashboard"><span class="nav-icon" data-icon="home"></span>概览<span class="nav-badge" data-badge="dashboard"></span></a>
-        <a href="#/applications" data-route="applications"><span class="nav-icon" data-icon="briefcase"></span>投递<span class="nav-badge" data-badge="applications"></span></a>
-        <a href="#/calendar" data-route="calendar"><span class="nav-icon" data-icon="calendar"></span>日程</a>
-        <a href="#/profile" data-route="profile"><span class="nav-icon" data-icon="user"></span>档案</a>
-        <a href="#/resumes" data-route="resumes"><span class="nav-icon" data-icon="file"></span>简历</a>
-        <a href="#/answers" data-route="answers"><span class="nav-icon" data-icon="book"></span>素材库</a>
-        <a href="#/settings" data-route="settings"><span class="nav-icon" data-icon="settings"></span>设置</a>
+        <a href="#/dashboard" data-route="dashboard"><span class="nav-icon" data-icon="home"></span><span class="nav-label">概览</span><span class="nav-badge" data-badge="dashboard"></span></a>
+        <a href="#/applications" data-route="applications"><span class="nav-icon" data-icon="briefcase"></span><span class="nav-label">投递</span><span class="nav-badge" data-badge="applications"></span></a>
+        <a href="#/calendar" data-route="calendar"><span class="nav-icon" data-icon="calendar"></span><span class="nav-label">日程</span></a>
+        <a href="#/profile" data-route="profile"><span class="nav-icon" data-icon="user"></span><span class="nav-label">档案</span></a>
+        <a href="#/resumes" data-route="resumes"><span class="nav-icon" data-icon="file"></span><span class="nav-label">简历</span></a>
+        <a href="#/answers" data-route="answers"><span class="nav-icon" data-icon="book"></span><span class="nav-label">素材库</span></a>
+        <a href="#/settings" data-route="settings"><span class="nav-icon" data-icon="settings"></span><span class="nav-label">设置</span></a>
       </nav>
-      <div class="sidebar-foot" id="clock"></div>
     </aside>
     <div class="main">
-      <header class="topbar">
-        <h1 id="page-title">概览</h1>
-        <div class="topbar-actions">
-          <label class="search">
-            <span class="search-icon" data-icon="search"></span>
-            <input id="global-search" type="search" placeholder="搜索公司、岗位、城市（按 / ）" autocomplete="off">
-          </label>
-          <button class="btn primary" id="new-app-btn" type="button"><span data-icon="plus"></span>新建投递</button>
-        </div>
-      </header>
-      <div class="offline-banner" id="offline-banner" hidden>连不上 Tracker 服务：双击 <b>启动Tracker.command</b> 后刷新页面。</div>
+      <div class="offline-banner" id="offline-banner" hidden><span data-icon="alert"></span><span>连不上 Tracker 服务：双击 <b>启动Tracker.command</b> 后刷新页面。</span></div>
       <main class="view" id="view"></main>
     </div>
   </div>
