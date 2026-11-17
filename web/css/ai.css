@@ -1,34 +1,39 @@
-/* 投递详情里的 AI 页：诊断在上，对话在下 */
+/* 投递详情里的 AI 页：诊断 / 面试题在上，对话在下 */
 .ai-pane { display: flex; flex-direction: column; gap: 14px; }
 .ai-head { display: flex; align-items: center; gap: 8px; }
-.ai-summary { padding: 10px 12px; border-radius: var(--radius); background: var(--accent-soft); color: var(--accent-text); }
+.ai-body { display: flex; flex-direction: column; gap: 14px; }
+.ai-summary { padding: 10px 12px; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--teal-softer); }
 .ai-section { display: flex; flex-direction: column; gap: 8px; }
 .ai-section h4 { margin: 4px 0 0; font-size: 13px; }
-.ai-reqs { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.ai-reqs li { display: flex; align-items: baseline; gap: 8px; }
-.ai-flag { flex: none; min-width: 56px; padding: 1px 7px; border-radius: 999px; font-size: 11.5px; text-align: center; }
-.ai-flag.ok { background: var(--ok-soft); color: var(--ok); }
-.ai-flag.warn { background: var(--warn-soft); color: var(--warn); }
-.ai-flag.bad { background: var(--danger-soft); color: var(--danger); }
+.ai-reqs { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.ai-reqs li { display: flex; align-items: flex-start; gap: 8px; }
+/* 「有硬证据 / 沾边 / 缺」占同样的宽度，右边的文字才能对齐 */
+.ai-flag-cell { flex: none; width: 92px; }
 .ai-keys { display: flex; flex-wrap: wrap; gap: 6px; }
-.ai-rewrite { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
+.ai-rewrite, .ai-q {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px;
+  border: 2px solid var(--ink); border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
 .ai-rewrite-head { display: flex; align-items: center; justify-content: space-between; }
-.ai-before { padding: 6px 8px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text-3); text-decoration: line-through; }
-.ai-after { padding: 6px 8px; border-radius: var(--radius-sm); background: var(--ok-soft); color: var(--text); }
-.ai-chat { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.ai-before { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--surface-3); color: var(--ink-2); text-decoration: line-through; }
+.ai-after { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--ok-soft); }
+.ai-pane p { margin: 0; }
+.ai-warn { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--warn-soft); font-size: 12px; list-style: none; }
+.ai-warn li { display: flex; align-items: center; gap: 6px; }
+.ai-warn .icon { width: 12px; height: 12px; }
+.ai-chat { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed var(--ink-3); }
 .ai-chat h4 { margin: 0; font-size: 13px; }
 .ai-log { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow: auto; }
-.ai-msg { max-width: 90%; padding: 8px 10px; border-radius: var(--radius); white-space: pre-wrap; overflow-wrap: anywhere; }
-.ai-msg.user { align-self: flex-end; background: var(--accent-soft); color: var(--accent-text); }
+.ai-msg { max-width: 90%; padding: 8px 12px; border: 2px solid var(--ink); border-radius: var(--radius); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-msg.user { align-self: flex-end; background: var(--teal-soft); }
 .ai-msg.assistant { align-self: flex-start; background: var(--surface-2); }
-.ai-msg.err { color: var(--danger); }
+.ai-msg.err { background: var(--danger-soft); font-weight: 600; }
 .ai-input { display: flex; gap: 8px; align-items: flex-end; }
-.ai-input textarea { flex: 1; }
-.ai-warn { display: flex; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none; color: var(--warn); font-size: 12px; }
-.ai-warn li { display: flex; align-items: center; gap: 5px; }
-.ai-warn .icon { width: 13px; height: 13px; }
+.ai-input textarea { flex: 1; min-height: 64px; }
 .ai-modes { align-self: flex-start; }
-.ai-q { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
 .ai-q-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.ai-points { margin: 2px 0 0; padding-left: 18px; color: var(--text-2); font-size: 12.5px; }
+.ai-points { margin: 2px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 12px; }
 .ai-points li { margin: 2px 0; }

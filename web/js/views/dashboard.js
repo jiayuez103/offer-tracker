@@ -1,7 +1,8 @@
 // 概览：数字卡片、需要处理、未来 7 天、投递漏斗、每周投递、赛道对比。
 import { store } from '../store.js';
 import { api } from '../api.js';
-import { h, icon, ensureCss, openApp, openNewApp, openInvite } from '../ui.js';
+import { h, icon, ensureCss, openApp, openNewApp, openInvite, eventChip, deadlineChip } from '../ui.js';
+import { pixelText } from '../pixel.js';
 import { STAGE_LABEL, TRACKS } from '../../shared/constants.js';
 import { actionItems, funnel, weeklyApplied, stageIndex, isClosed } from '../../shared/domain.js';
 import { todayInZone, formatZoned, isoToLocalInput, zonedToISO, deadlineISO, addDays, diffDays } from '../../shared/time.js';
@@ -100,7 +101,7 @@ function inboxBar() {
     if (!list.length) return;
     box.hidden = false;
     box.replaceChildren(
-      h('span', { class: 'digest-label' }, icon('alert'), `邮件导入待确认 ${list.length} 条`),
+      h('span', { class: 'digest-label' }, icon('mail'), `邮件导入待确认 ${list.length} 条`),
       h('ul', { class: 'digest-list' }, list.map((it) => h('li', null,
         h('button', {
           type: 'button',
@@ -130,7 +131,7 @@ function digestBar(apps, settings, now) {
     const at = Date.parse(it.event.at);
     return at >= now.getTime() && at <= limit;
   });
-  const paste = h('button', { class: 'btn sm', type: 'button', onClick: openInvite }, icon('message'), '粘贴邀请');
+  const paste = h('button', { class: 'btn sm', type: 'button', onClick: openInvite }, icon('mail'), '粘贴邀请');
   if (!items.length) return null;
   return h('section', { class: 'digest' },
     h('span', { class: 'digest-label' }, icon('clock'), '今明两天'),
@@ -150,7 +151,7 @@ function digestBar(apps, settings, now) {
 function tile(label, value, sub) {
   return h('div', { class: 'card kpi' },
     h('div', { class: 'kpi-label' }, label),
-    h('div', { class: 'kpi-value' }, String(value)),
+    h('div', { class: 'kpi-value' }, pixelText(String(value), 34)),
     h('div', { class: 'kpi-sub' }, sub));
 }
 
@@ -158,7 +159,7 @@ function weekTile(count, goal) {
   const pct = goal ? Math.min(100, Math.round((count / goal) * 100)) : 0;
   return h('div', { class: 'card kpi' },
     h('div', { class: 'kpi-label' }, '本周投递'),
-    h('div', { class: 'kpi-value' }, String(count), goal ? h('span', { class: 'kpi-goal' }, ` / ${goal}`) : null),
+    h('div', { class: 'kpi-value' }, pixelText(String(count), 34), goal ? h('span', { class: 'kpi-goal' }, pixelText(`/ ${goal}`, 16)) : null),
     goal
       ? h('div', { class: 'meter', role: 'meter', 'aria-label': '本周投递进度', 'aria-valuenow': String(count), 'aria-valuemin': '0', 'aria-valuemax': String(goal) },
         h('span', { style: { width: `${pct}%` } }))
@@ -183,7 +184,7 @@ function kpiRow(apps, settings, today) {
 function actionCard(apps, settings, now) {
   const items = actionItems(apps, settings, now);
   return h('section', { class: 'card' },
-    h('div', { class: 'card-head' }, h('h3', null, '需要处理'), items.length ? h('span', { class: 'chip accent' }, String(items.length)) : null),
+    h('div', { class: 'card-head' }, h('h3', null, items.length ? `需要处理 · ${items.length}` : '需要处理')),
     h('div', { class: 'card-body' }, items.length
       ? h('ul', { class: 'todo' }, items.map((it) => h('li', null,
         h('button', {
@@ -233,14 +234,14 @@ function agendaCard(apps, settings, now) {
   return h('section', { class: 'card' },
     h('div', { class: 'card-head' },
       h('h3', null, '未来 7 天'),
-      h('span', { class: 'muted small' }, `按${settings.homeTzLabel}时间分组`),
-      h('span', { class: 'spacer' }),
-      h('a', { class: 'small', href: '#/calendar' }, '全部日程')),
-    h('div', { class: 'card-body' }, rows.length
-      ? [...groups].map(([day, list]) => h('div', { class: 'agenda-day' },
-        h('div', { class: 'agenda-date' }, dayLabel(day)),
-        list.map((r) => agendaRow(r, settings))))
-      : h('div', { class: 'empty small' }, '未来 7 天没有安排')));
+      h('a', { href: '#/calendar' }, '全部日程')),
+    h('div', { class: 'card-body' },
+      h('p', { class: 'card-note' }, `按${settings.homeTzLabel}时间分组 · 右侧是${settings.targetTzLabel}时间`),
+      rows.length
+        ? [...groups].map(([day, list]) => h('div', { class: 'agenda-day' },
+          h('div', { class: 'agenda-date' }, dayLabel(day)),
+          list.map((r) => agendaRow(r, settings))))
+        : h('div', { class: 'empty small' }, '未来 7 天没有安排')));
 }
 
 function agendaRow(r, settings) {
@@ -250,7 +251,7 @@ function agendaRow(r, settings) {
     : `${r.app.company || r.app.position || ''}${r.ev.title ? ` · ${r.ev.title}` : ''}`;
   return h('button', { type: 'button', class: 'agenda-row', onClick: () => openApp(r.app.id, { tab: r.deadline ? 'info' : 'events' }) },
     h('span', { class: 'agenda-time' }, hm(iso, settings.homeTz)),
-    h('span', { class: ['chip', r.deadline ? 'warn' : 'accent'] }, r.deadline ? '网申截止' : r.ev.type),
+    r.deadline ? deadlineChip() : eventChip(r.ev.type),
     h('span', { class: 'agenda-what' }, what),
     h('span', { class: 'agenda-other muted' }, `${settings.targetTzLabel} ${formatZoned(iso, settings.targetTz)}`));
 }
@@ -268,13 +269,13 @@ function funnelCard(apps) {
       return h('div', { class: 'funnel-row', tabindex: '0', 'aria-label': `${r.count} 家 ${label}`, ...tipHandlers({ value: `${r.count} 家`, label }) },
         h('span', { class: 'funnel-label' }, STAGE_LABEL[r.key]),
         h('span', { class: 'funnel-track' },
-          h('span', { class: 'funnel-bar', style: { width: `${(share * 82).toFixed(1)}%` } }),
+          r.count ? h('span', { class: `funnel-bar ${r.key}`, style: { width: `${(share * 82).toFixed(1)}%` } }) : null,
           h('span', { class: 'funnel-value' }, String(r.count), conv != null ? h('span', { class: 'muted' }, ` ${conv}%`) : null)));
     }))
     : h('div', { class: 'empty small' }, '投出第一份之后，这里会显示每一轮的通过情况');
   return h('section', { class: 'card' },
-    h('div', { class: 'card-head' }, h('h3', null, '投递漏斗'), h('span', { class: 'muted small' }, '按到达过的最高阶段 · 百分比是上一步转化率')),
-    h('div', { class: 'card-body' }, body));
+    h('div', { class: 'card-head' }, h('h3', null, '投递漏斗')),
+    h('div', { class: 'card-body' }, h('p', { class: 'card-note' }, '按到达过的最高阶段 · 百分比是上一步转化率'), body));
 }
 
 // ---------- 每周投递 ----------
@@ -284,8 +285,9 @@ function weeklyCard(apps, settings, today) {
   const max = Math.max(goal, ...weeks.map((w) => w.count), 1);
   const y = (v) => (v / max) * PLOT_HEIGHT;
   return h('section', { class: 'card' },
-    h('div', { class: 'card-head' }, h('h3', null, '每周投递'), h('span', { class: 'muted small' }, '近 8 周 · 周一开始')),
+    h('div', { class: 'card-head' }, h('h3', null, '每周投递')),
     h('div', { class: 'card-body' },
+      h('p', { class: 'card-note' }, '近 8 周 · 周一开始'),
       h('div', { class: 'weekly', style: { height: `${PLOT_HEIGHT + LABEL_BAND + 26}px` } },
         goal ? h('div', { class: 'goal-line', style: { bottom: `${LABEL_BAND + y(goal)}px` } }, h('span', null, `目标 ${goal}`)) : null,
         weeks.map((w, i) => {
@@ -298,7 +300,7 @@ function weeklyCard(apps, settings, today) {
             ...tipHandlers({ value: `${w.count} 家`, label: range }),
           },
           h('span', { class: 'wk-value' }, String(w.count)),
-          h('span', { class: 'wk-bar', style: { height: `${y(w.count)}px` } }),
+          w.count ? h('span', { class: 'wk-bar', style: { height: `${y(w.count)}px` } }) : null,
           h('span', { class: 'wk-label' }, current ? '本周' : fmtMD(w.weekStart)));
         }))));
 }

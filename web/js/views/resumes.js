@@ -95,6 +95,8 @@ function resumeCard(r, used) {
   });
 
   return h('section', { class: 'card resume-card' },
+    h('div', { class: 'card-head' }, h('h3', null, r.name || '未命名版本')),
+    h('div', { class: 'card-body' },
     h('div', { class: 'resume-top' },
       input({ value: r.name || '', cls: 'resume-name', placeholder: '版本名称', onChange: (v) => save({ name: v.trim() || '未命名版本' }) }),
       h('button', { class: 'btn sm ghost icon-only danger', type: 'button', title: '删除这个版本', onClick: () => removeVersion(r, used) }, icon('trash'))),
@@ -106,5 +108,5 @@ function resumeCard(r, used) {
     files.length ? h('ul', { class: 'file-list' }, files) : null,
     drop,
     picker,
-    textarea({ value: r.notes || '', rows: 2, placeholder: '备注：这一版的侧重点、改了什么…', onChange: (v) => save({ notes: v }) }));
+    textarea({ value: r.notes || '', rows: 2, placeholder: '备注：这一版的侧重点、改了什么…', onChange: (v) => save({ notes: v }) })));
 }

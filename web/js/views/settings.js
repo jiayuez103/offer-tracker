@@ -67,7 +67,8 @@ function build() {
   const about = h('p', { class: 'muted small', style: { margin: 0 } }, '秋招 Tracker');
   api.get('/api/ping').then((p) => { about.textContent = `秋招 Tracker v${p.version} · 本地服务运行中`; }).catch(() => {});
 
-  return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '760px' } },
+  return h('div', { class: 'settings' },
+    h('div', { class: 'settings-col' },
     card('提醒',
       h('div', { class: 'form-grid' },
         field('多少天没进展算「没动静」', num('staleDays', 1, 90), { hint: '默认 14 天。已经约好下一步日程的投递不算。' }),
@@ -94,6 +95,9 @@ function build() {
     card('日历',
       h('p', { style: { margin: 0 } }, '在「日程」页可以把所有面试、测评和网申截止订阅到苹果日历。 ',
         h('a', { href: '#/calendar' }, '去日程页'))),
+    card('关于', about)),
+    h('div', { class: 'settings-col' },
+    aiCard(s, save),
     card('Chrome 插件（秋招助手）',
       h('ol', { style: { margin: 0, paddingLeft: '20px', lineHeight: 1.9 } },
         h('li', null, 'Chrome 地址栏打开 chrome://extensions ',
@@ -103,8 +107,7 @@ function build() {
         h('li', null, '点工具栏的拼图图标，把「秋招助手」固定出来')),
       h('p', { class: 'muted small', style: { marginBottom: 0 } },
         '在网申页点插件图标或按 ⌥⇧J 打开侧边栏：一键填写、点选填充、把简历放进上传框、记录投递。插件用的是这里「档案」「简历」「素材库」的内容；Tracker 没启动时也能用上次的缓存填写。')),
-    aiCard(s, save),
-    card('关于', about));
+  ));
 }
 
 const AI_FORMATS = [

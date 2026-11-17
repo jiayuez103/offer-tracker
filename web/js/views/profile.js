@@ -220,13 +220,12 @@ export function render(root) {
           : renderField(def, profile[sec.key], () => schedule(sec.key)))));
       }
       el.replaceChildren(
-        h('div', { class: 'pf-head' },
-          h('h2', null, sec.title),
-          list ? h('span', { class: 'muted small' }, `${list.length} 条`) : null,
-          h('span', { class: 'spacer' }),
+        h('div', { class: 'card-head' },
+          h('h3', null, list ? `${sec.title} · ${list.length} 条` : sec.title),
           list ? h('button', { class: 'btn sm', type: 'button', onClick: () => addEntry(sec) }, icon('plus'), '添加') : null),
-        sec.hint ? h('p', { class: 'muted small pf-hint' }, sec.hint) : '',
-        body);
+        h('div', { class: 'card-body' },
+          sec.hint ? h('p', { class: 'card-note' }, sec.hint) : null,
+          body));
     };
     painters[sec.key] = paint;
     paint();
