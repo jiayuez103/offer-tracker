@@ -70,9 +70,14 @@
     .opts label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
     .result { margin-top: 10px; padding: 10px; border: 1px dashed var(--ink3); border-radius: 10px; background: var(--bg2); }
     .result.err { border: 2px solid var(--ink); background: var(--err-soft); }
-    .sum { padding: 6px 10px; border: 2px solid var(--ink); border-radius: 6px; background: var(--ok-soft); color: var(--ink); }
-    .sum.muted { background: var(--bg); color: var(--ink2); }
-    .result .row { justify-content: space-between; margin-top: 8px; }
+    .result > .row { justify-content: space-between; align-items: flex-start; }
+    .counts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .count { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border: 2px solid var(--ink); border-radius: 6px; background: var(--bg); font-size: 12px; font-weight: 700; }
+    /* 色块和 lib/fill.js 里给网页输入框描边的 COLORS 一致：看颜色就知道对应网页上哪种框 */
+    .sw { width: 10px; height: 10px; flex: none; border-radius: 2px; }
+    .sw.filled { background: #2f8a57; }
+    .sw.uncertain { background: #3f7fd9; }
+    .sw.manual { background: #d4a017; }
     .err { color: var(--ink); font-weight: 600; }
     details { margin-top: 8px; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; background: var(--bg); }
     summary { display: flex; align-items: center; gap: 6px; padding: 7px 10px; cursor: pointer; font-weight: 700; list-style: none; }
@@ -81,7 +86,6 @@
     summary::before { content: "›"; display: inline-block; color: var(--ink); font-weight: 700; transition: transform .15s; }
     details[open] > summary::before { transform: rotate(90deg); }
     details[open] > summary { border-bottom: 1px dashed var(--ink3); margin-bottom: 4px; }
-    details > .hint { margin: 4px 0 6px; padding: 0 10px; }
     .items { display: flex; flex-direction: column; padding: 0 4px 6px; }
     .item-row { display: flex; align-items: flex-start; gap: 4px; }
     .item { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 8px; padding: 6px; border: 0; border-radius: 6px; background: none; text-align: left; cursor: pointer; }
@@ -306,16 +310,15 @@
     const p = state.profile;
     if (!p) {
       return h('div', { class: 'empty' }, state.online
-        ? '档案还是空的：先在 Tracker 的「档案」页填好。'
-        : '连不上 Tracker，也没有缓存的档案。先双击「启动Tracker.command」，再点底部的「刷新」。');
+        ? '档案是空的'
+        : '连不上 Tracker：双击「启动Tracker.command」后点「刷新」');
     }
     const lang = effectiveLang();
     return [
       fillAllSection(),
       resumeSection(),
       h('div', { class: 'section' },
-        h('h3', null, '点选填充'),
-        h('p', { class: 'hint' }, '先点网页上的输入框，再点下面的内容就会填进去，同时复制到剪贴板。'),
+        h('h3', null, '点一下，填进光标所在的框'),
         profileGroups(p, lang).map((g, i) => group(g, lang, i === 0)),
         answersGroup()),
     ];
@@ -339,46 +342,42 @@
       btn,
       h('div', { class: 'opts' },
         h('label', null, h('input', { type: 'checkbox', checked: ui.overwrite, onChange: (e) => { ui.overwrite = e.target.checked; } }), '覆盖已有内容'),
-        h('label', null, h('input', { type: 'checkbox', checked: ui.reverse, onChange: (e) => { ui.reverse = e.target.checked; } }), '经历反过来填（早的在前）')),
+        h('label', null, h('input', { type: 'checkbox', checked: ui.reverse, onChange: (e) => { ui.reverse = e.target.checked; } }), '早的经历在前')),
       ui.result ? resultView(ui.result) : null);
   }
 
+  const FILL_KINDS = [['filled', '已填'], ['uncertain', '核对'], ['manual', '手动']];
+
   function resultView(r) {
     if (r.error) return h('div', { class: 'result err' }, r.error);
-    const parts = [h('b', null, `已填 ${r.filled} 项`)];
-    if (r.uncertain) parts.push(` · 请核对 ${r.uncertain} 项（蓝框）`);
-    if (r.manual) parts.push(` · 需要手动 ${r.manual} 项（黄框）`);
     const missing = Object.entries(r.missing || {}).map(([k, n]) => `${LIST_NAMES[k] || k}还差 ${n} 段`);
     let hint = '';
-    if (missing.length) hint = `表单里的空位不够：${missing.join('，')}。先在网页上点「添加」，再点一次一键填写。`;
+    if (missing.length) hint = `${missing.join('，')}：先在网页上点「添加」再填一次`;
     else if (!r.filled && !r.uncertain && !r.manual) {
-      hint = r.skipped
-        ? `认出的 ${r.skipped} 项都已经有内容；要重填就勾上「覆盖已有内容」。`
-        : '这个页面上没认出能填的字段，可以用下面的点选填充。';
+      hint = r.skipped ? `${r.skipped} 项已有内容，要重填就勾上「覆盖已有内容」` : '没认出能填的字段';
     }
     return h('div', { class: 'result' },
-      h('div', { class: ['sum', !r.filled && 'muted'] }, parts),
+      h('div', { class: 'row' },
+        h('div', { class: 'counts' }, FILL_KINDS.filter(([k]) => k === 'filled' || r[k]).map(([k, label]) => h('span', { class: 'count' },
+          h('span', { class: `sw ${k}` }), `${label} ${r[k] || 0}`))),
+        h('button', {
+          class: 'link',
+          onClick: () => send({ type: 'fill:clear' }).then(() => { ui.result = null; render(); }).catch(() => {}),
+        }, '清除标记')),
       hint ? h('p', { class: 'hint' }, hint) : null,
       r.todo && r.todo.length
         ? h('details', { class: 'todo', open: true },
           h('summary', null, `填不进去的 ${r.todo.length} 项`),
-          h('p', { class: 'hint' }, '多半是只读的日期框，得你自己点日历。点一下就复制，先点网页上的输入框再点它就能填进去。'),
           h('div', { class: 'items' }, r.todo.map((t) => h('button', { class: 'item', title: t.text, onMousedown: noDefault, onClick: () => insert(t.text) },
             h('span', { class: 'k' }, t.label),
             h('span', { class: 'v' }, t.text)))))
-        : null,
-      h('div', { class: 'row' },
-        h('span', { class: 'hint' }, '绿框已填 · 蓝框请核对 · 黄框要你来填'),
-        h('button', {
-          class: 'link',
-          onClick: () => send({ type: 'fill:clear' }).then(() => { ui.result = null; render(); }).catch(() => {}),
-        }, '清除标记')));
+        : null);
   }
 
   function resumeSection() {
     const resumes = (state.resumes || []).filter((r) => (r.files || []).length);
     if (!resumes.length) {
-      return h('div', { class: 'section' }, h('h3', null, '上传简历'), h('p', { class: 'hint' }, '还没有简历文件：先在 Tracker 的「简历」页上传。'));
+      return h('div', { class: 'section' }, h('h3', null, '上传简历'), h('p', { class: 'hint' }, '还没有简历文件'));
     }
     if (!resumes.some((r) => r.id === ui.resumeId)) ui.resumeId = resumes[0].id;
     const current = resumes.find((r) => r.id === ui.resumeId);
@@ -400,7 +399,7 @@
             render();
           },
         }, '放进上传框')),
-      hasPdf ? null : h('p', { class: 'hint' }, '这个版本只有 Word 文件。多数网申要 PDF，建议导出 PDF 后传到 Tracker。'),
+      hasPdf ? null : h('p', { class: 'hint' }, '只有 Word 文件，多数网申要 PDF'),
       ui.attach ? h('p', { class: 'hint' }, ui.attach) : null);
   }
 
@@ -458,7 +457,7 @@
     refresh();
     return h('details', { open: !!ui.query },
       h('summary', null, `素材库（${answers.length}）`),
-      h('input', { class: 'search', placeholder: '搜索题目、回答、标签', value: ui.query, onInput: (e) => { ui.query = e.target.value; refresh(); } }),
+      h('input', { class: 'search', placeholder: '搜索', value: ui.query, onInput: (e) => { ui.query = e.target.value; refresh(); } }),
       box);
   }
 
@@ -563,15 +562,14 @@
     const a = clip.saved;
     return h('div', { class: 'saved' },
       h('div', null, '已保存：', h('b', null, `${a.company || ''} · ${a.position || ''}`)),
-      h('p', { class: 'hint' }, a.stage === 'applied' ? '状态：已投递，投递日期记为今天。' : '状态：待投递。投完后在 Tracker 里把卡片拖到「已投递」。'),
       h('div', { class: 'row' },
         h('button', { class: 'btn', onClick: () => openInTracker(a.id) }, '在 Tracker 里打开'),
         h('button', { class: 'link', onClick: () => { clip = null; detect(); render(); } }, '再记一条')));
   }
 
   function clipView() {
-    if (!state.online) return h('div', { class: 'empty' }, '记录投递需要 Tracker 在运行：先双击「启动Tracker.command」，再点底部的「刷新」。');
-    if (!clip) return h('div', { class: 'empty' }, '正在识别这个页面…');
+    if (!state.online) return h('div', { class: 'empty' }, '需要 Tracker 在运行：双击「启动Tracker.command」后点「刷新」');
+    if (!clip) return h('div', { class: 'empty' }, '识别中…');
     if (clip.saved) return savedView();
     const r = clip.record;
     const text = (key, placeholder = '') => h('input', { value: r[key] || '', placeholder, onInput: (e) => { r[key] = e.target.value; } });
@@ -579,10 +577,10 @@
     return [
       clip.dup ? dupView(clip.dup) : null,
       clip.parseError
-        ? h('div', { class: 'dup' }, `自动识别没跑成功：${clip.parseError}。Tracker 可能是旧版本在跑，双击「停止Tracker.command」再「启动Tracker.command」，然后点「重新识别」。下面的内容先手动填也行。`)
+        ? h('div', { class: 'dup' }, `自动识别失败：${clip.parseError}。重启 Tracker 后点「重新识别」，或者直接手填。`)
         : null,
-      field('公司', text('company', '如：雀巢')),
-      field('岗位', text('position', '如：Marketing MT')),
+      field('公司', text('company')),
+      field('岗位', text('position')),
       h('div', { class: 'two' },
         field('城市', text('cities', '多个用 / 分隔')),
         field('网申截止', h('input', { type: 'date', value: r.deadline || '', onInput: (e) => { r.deadline = e.target.value; } }))),
@@ -596,7 +594,7 @@
           resumes.map((x) => h('option', { value: x.id }, x.name || '未命名版本'))))),
       field('状态', seg([['wishlist', '还没投'], ['applied', '已投递']], r.stage, (v) => { r.stage = v; }), 'div'),
       h('details', { class: 'jd' },
-        h('summary', null, `JD 全文（${clip.text.length} 字，保存时一起存成快照）`),
+        h('summary', null, `JD 全文 · ${clip.text.length} 字`),
         h('textarea', { value: clip.text, onInput: (e) => { clip.text = e.target.value; } })),
       h('div', { class: 'row actions' },
         h('button', { class: 'primary grow', onClick: saveClip }, clip.dup ? '仍然另存一条' : '保存到 Tracker'),

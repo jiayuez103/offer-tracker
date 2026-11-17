@@ -10,22 +10,20 @@
 .pf-nav a { padding: 6px 8px; border-radius: var(--radius-sm); color: var(--ink-2); font-size: 12px; font-weight: 500; text-decoration: none; }
 .pf-nav a:hover { background: var(--teal-soft); color: var(--ink); }
 .pf-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.pf-bar {
-  position: sticky; top: 0; z-index: 5;
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 12px;
-  border: 2px solid var(--ink); border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow-3);
+/* 保存状态：有改动时才在右下角出现，存好一会儿后自己消失 */
+.pf-status {
+  position: fixed; right: 32px; bottom: 24px; z-index: 30;
+  padding: 4px 12px;
+  border: 2px solid var(--ink); border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-2);
+  font-size: 12px; font-weight: 700;
 }
-/* 保存状态：底色之外，文字本身就写明了状态 */
-.pf-status { padding: 1px 8px; border: 2px solid var(--ink); border-radius: var(--radius-sm); background: var(--surface-2); font-size: 12px; font-weight: 700; }
 .pf-status.pending, .pf-status.saving { background: var(--butter); }
 .pf-status.saved { background: var(--ok-soft); }
 .pf-status.error { background: var(--danger-soft); }
-.pf-note { padding: 8px 12px; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--butter); font-size: 12px; }
 
-.pf-section { scroll-margin-top: 60px; }
+.pf-section { scroll-margin-top: 8px; }
 .pf-section .card-body { padding: 14px 16px 16px; }
 .pf-entries { display: flex; flex-direction: column; gap: 12px; }
 .pf-entry { padding: 12px; border: 2px solid var(--ink); border-radius: var(--radius); background: var(--surface-2); }

@@ -1,7 +1,7 @@
 // 档案：基本信息、求职意向、各类经历（可增删、排序）、技能与自我评价、自定义字段。
 // 中英字段并排；停止输入 0.8 秒后按分节自动保存（PATCH 只改这一节，不会覆盖别的分节）。
 import { store } from '../store.js';
-import { h, icon, ensureCss, field, input, textarea, select, confirmDialog } from '../ui.js';
+import { h, icon, ensureCss, field, input, textarea, select, confirmDialog, setChildren } from '../ui.js';
 import { asBi, PROFILE_ENTRY, textStats } from '../../shared/domain.js';
 
 const f = {
@@ -20,14 +20,14 @@ const SECTIONS = [
   {
     key: 'basic', title: '基本信息',
     fields: [
-      f.bi('name', '姓名'), f.text('preferredName', '英文名 / 常用名', { placeholder: '如：Jasmine' }),
+      f.bi('name', '姓名'), f.text('preferredName', '英文名 / 常用名'),
       f.bi('familyName', '姓'), f.bi('givenName', '名'),
       f.select('gender', '性别', ['女', '男']), f.date('birthDate', '出生日期'),
       f.text('phoneCountryCode', '手机区号', { placeholder: '+86' }), f.text('phone', '手机号'),
       f.text('email', '邮箱', { inputType: 'email' }), f.text('wechat', '微信号'),
       f.bi('currentCity', '现居城市'), f.bi('nationality', '国籍'),
       f.bi('hometown', '籍贯'), f.bi('residence', '户口所在地 / 生源地'),
-      f.select('politicalStatus', '政治面貌', POLITICAL), f.text('ethnicity', '民族', { placeholder: '如：汉族' }),
+      f.select('politicalStatus', '政治面貌', POLITICAL), f.text('ethnicity', '民族'),
       f.text('linkedin', 'LinkedIn', { inputType: 'url' }), f.text('website', '个人网站 / 作品集', { inputType: 'url' }),
     ],
   },
@@ -35,7 +35,7 @@ const SECTIONS = [
     key: 'intent', title: '求职意向',
     fields: [
       f.bi('positions', '意向岗位'), f.bi('cities', '意向城市'),
-      f.text('salary', '期望薪资', { placeholder: '如：面议' }), f.text('availableFrom', '最早到岗时间', { placeholder: '如：2027-07' }),
+      f.text('salary', '期望薪资'), f.text('availableFrom', '最早到岗时间', { placeholder: '2027-07' }),
       f.select('acceptAdjustment', '是否接受调剂', ['是', '否']),
     ],
   },
@@ -46,7 +46,7 @@ const SECTIONS = [
       f.bi('major', '专业'), f.bi('college', '学院'),
       f.month('start', '开始'), f.month('end', '结束（预计）'),
       f.text('gpa', 'GPA'), f.text('gpaScale', '满分', { placeholder: '4.0' }),
-      f.text('rank', '排名', { placeholder: '如：前 10%' }), f.bi('city', '城市'),
+      f.text('rank', '排名', { placeholder: '前 10%' }), f.bi('city', '城市'),
       f.long('courses', '主修课程'), f.long('honors', '在校荣誉'),
     ],
   },
@@ -84,7 +84,7 @@ const SECTIONS = [
     key: 'languages', title: '语言能力', list: true, itemTitle: (e) => titleOf(e.language, '新的语言'),
     fields: [
       f.bi('language', '语言'), f.bi('level', '水平', { placeholder: ['精通', 'Fluent'] }),
-      f.text('certificate', '证书', { placeholder: '如：IELTS / TOEFL / CET-6' }), f.text('score', '成绩'),
+      f.text('certificate', '证书', { placeholder: 'IELTS / TOEFL / CET-6' }), f.text('score', '成绩'),
     ],
   },
   {
@@ -97,8 +97,7 @@ const SECTIONS = [
   },
   {
     key: 'extras', title: '自定义字段', list: true, itemTitle: (e) => e.label || '新字段',
-    hint: '网申里遇到档案没有的字段（比如「是否有海外经历」），加在这里，以后插件侧边栏可以点选填入。',
-    fields: [f.text('label', '字段名'), f.bi('value', '内容')],
+    fields: [f.text('label', '字段名', { placeholder: '如：是否有海外经历（别存证件号和密码）' }), f.bi('value', '内容')],
   },
 ];
 
@@ -109,11 +108,16 @@ export function render(root) {
   const timers = {};
   const pending = new Set();
   const painters = {};
-  const status = h('span', { class: 'pf-status' }, '改动会自动保存');
+  // 保存状态只在有改动时出现在右下角，平时不占位置
+  const status = h('span', { class: 'pf-status', role: 'status', hidden: true });
+  let hideStatus;
 
   function setStatus(kind, message = '') {
+    status.hidden = false;
     status.className = `pf-status ${kind}`;
-    status.textContent = { pending: '有改动，马上自动保存…', saving: '保存中…', saved: '已保存', error: `保存失败：${message}` }[kind];
+    status.textContent = { pending: '待保存', saving: '保存中…', saved: '已保存', error: `保存失败：${message}` }[kind];
+    clearTimeout(hideStatus);
+    if (kind === 'saved') hideStatus = setTimeout(() => { status.hidden = true; }, 1600);
   }
 
   async function saveNow(key) {
@@ -158,7 +162,12 @@ export function render(root) {
       return field(def.label, h('div', { class: 'bi' }, cell('zh', '中', phZh), cell('en', 'EN', phEn)), { tag: 'div' });
     }
     const stats = h('span', null);
-    const updateStats = () => { stats.textContent = `中文 ${textStats(value.zh).chars} 字 · English ${textStats(value.en).words} words`; };
+    // 只在写了内容时显示字数
+    const updateStats = () => {
+      const zh = textStats(value.zh).chars;
+      const en = textStats(value.en).words;
+      stats.textContent = [zh ? `${zh} 字` : '', en ? `${en} words` : ''].filter(Boolean).join(' · ');
+    };
     updateStats();
     const area = (lang, ph) => textarea({ value: value[lang], rows: 4, placeholder: ph, onInput: (v) => { value[lang] = v; updateStats(); onChange(); } });
     return field(def.label, h('div', { class: 'bi long' }, area('zh', '中文'), area('en', 'English')), { full: true, tag: 'div', hint: stats });
@@ -213,19 +222,17 @@ export function render(root) {
       if (list) {
         body = list.length
           ? h('div', { class: 'pf-entries' }, list.map((entry, i) => entryCard(sec, entry, i, list.length)))
-          : h('div', { class: 'empty small' }, '还没有内容');
+          : null; // 空的多段经历只剩标题栏，右边就是「添加」
       } else {
         body = h('div', { class: 'form-grid' }, sec.fields.map((def) => (sec.root
           ? renderField(def, profile, () => schedule(def.key))
           : renderField(def, profile[sec.key], () => schedule(sec.key)))));
       }
-      el.replaceChildren(
+      setChildren(el,
         h('div', { class: 'card-head' },
-          h('h3', null, list ? `${sec.title} · ${list.length} 条` : sec.title),
+          h('h3', null, list ? `${sec.title} · ${list.length}` : sec.title),
           list ? h('button', { class: 'btn sm', type: 'button', onClick: () => addEntry(sec) }, icon('plus'), '添加') : null),
-        h('div', { class: 'card-body' },
-          sec.hint ? h('p', { class: 'card-note' }, sec.hint) : null,
-          body));
+        body ? h('div', { class: 'card-body' }, body) : null);
     };
     painters[sec.key] = paint;
     paint();
@@ -242,16 +249,10 @@ export function render(root) {
   }, s.title)));
   const main = h('div', { class: 'pf-main' });
   const buildAll = () => {
-    main.replaceChildren(
-      h('div', { class: 'pf-bar' },
-        status,
-        h('span', { class: 'spacer' }),
-        h('span', { class: 'muted small' }, '英文网申会用 EN 那一栏')),
-      h('div', { class: 'pf-note' }, '以后的网申插件会用这里的内容填表。身份证号、护照号和密码不要存在这里。'),
-      ...SECTIONS.map(renderSection));
+    main.replaceChildren(...SECTIONS.map(renderSection));
   };
   buildAll();
-  root.append(h('div', { class: 'pf' }, nav, main));
+  root.append(h('div', { class: 'pf' }, nav, main), status);
 
   const reloadFromStore = () => {
     profile = structuredClone(store.state.profile);

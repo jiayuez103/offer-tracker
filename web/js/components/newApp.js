@@ -37,9 +37,8 @@ export function openNewApp(preset = {}) {
   const text = (key, placeholder = '') => bind(key, input({ value: data[key], placeholder }));
   const pick = (key, options, placeholder = '未选择') => bind(key, select(options, data[key], null, { placeholder }), 'change');
 
-  const hint = h('div', { class: 'parse-hint' }, '粘贴 JD 后会自动识别公司、岗位、城市和截止日');
   const url = bind('jdUrl', input({ type: 'url', value: data.jdUrl, placeholder: 'https://…（可选）' }));
-  const jd = textarea({ rows: 14, placeholder: '把 JD 全文粘贴到这里（可选）。会一起存成 JD 快照，官网下架了也能复习。' });
+  const jd = textarea({ rows: 14, placeholder: '粘贴 JD 全文（可选）' });
 
   function runParse() {
     const found = parseJD(jdText, data.jdUrl);
@@ -55,14 +54,7 @@ export function openNewApp(preset = {}) {
       void el.offsetWidth; // 只给这次真正改了的字段重新触发高亮
       el.classList.add('filled');
     }
-    const labels = PARSED_FIELDS.filter(([key]) => autoFilled.has(key)).map(([, label]) => label);
-    if (labels.length) {
-      hint.textContent = `识别到：${labels.join('、')}（可以直接改）`;
-      hint.className = 'parse-hint ok';
-    } else if (jdText.trim() || data.jdUrl) {
-      hint.textContent = '没识别出字段，手动填一下就好';
-      hint.className = 'parse-hint';
-    }
+    // 认出来的字段自己会变成绿底，不再另写一行「识别到了什么」
   }
   const parseSoon = debounce(runParse, 350);
   jd.addEventListener('input', () => {
@@ -75,12 +67,11 @@ export function openNewApp(preset = {}) {
   const body = h('div', { class: 'newapp' },
     h('div', { class: 'newapp-jd' },
       field('JD 链接', url),
-      field('JD 全文', jd),
-      hint),
+      field('JD 全文', jd)),
     h('div', { class: 'form-grid' },
-      field('公司', text('company', '如：雀巢')),
-      field('公司英文名', text('companyEn', '如：Nestlé')),
-      field('岗位', text('position', '如：Marketing MT'), { full: true }),
+      field('公司', text('company')),
+      field('公司英文名', text('companyEn')),
+      field('岗位', text('position'), { full: true }),
       field('赛道', pick('track', TRACKS)),
       field('公司类型', pick('companyType', COMPANY_TYPES)),
       field('城市', text('cities', '多个用 / 分隔')),
@@ -114,7 +105,7 @@ export function openNewApp(preset = {}) {
     body,
     actions: [
       { label: '取消', ghost: true, onClick: (close) => close() },
-      { label: '保存（⌘↩）', primary: true, onClick: (close) => submit(close) },
+      { label: '保存', primary: true, onClick: (close) => submit(close) },
     ],
   });
   modal.el.addEventListener('keydown', (e) => {

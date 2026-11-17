@@ -3,7 +3,7 @@
 import { store } from '../store.js';
 import {
   h, icon, ensureCss, input, select, textarea, attempt, confirmDialog,
-  emptyState, fileSize, timeAgo, toast, repaintWhenIdle,
+  fileSize, timeAgo, toast, repaintWhenIdle,
 } from '../ui.js';
 import { fileUrl } from '../api.js';
 import { TRACKS } from '../../shared/constants.js';
@@ -13,7 +13,16 @@ const MAX_BYTES = 20 * 1024 * 1024;
 
 export function render(root) {
   ensureCss('/css/library.css');
-  const draw = () => root.replaceChildren(build());
+  const draw = () => root.replaceChildren(build(addVersion));
+  // 按钮还有焦点时 repaintWhenIdle 会等焦点离开才重画，所以这里自己画，再把光标放进新版本的名字
+  async function addVersion() {
+    const rec = await attempt(() => store.create('resumes', { name: '新版本', track: '', lang: 'zh', notes: '', files: [] }));
+    if (!rec) return;
+    draw();
+    const name = root.querySelector(`[data-id="${rec.id}"] .title-input`);
+    name?.focus();
+    name?.select();
+  }
   draw();
   const repaint = repaintWhenIdle(root, draw);
   return store.subscribe((topic) => {
@@ -21,19 +30,12 @@ export function render(root) {
   });
 }
 
-function build() {
+function build(onAdd) {
   const { resumes, applications } = store.state;
-  const head = h('div', { class: 'lib-head' },
-    h('p', { class: 'muted' }, '每个版本可以放多个文件，比如 Word 原稿和导出的 PDF。网申上传一般用 PDF。'),
-    h('span', { class: 'spacer' }),
-    h('button', { class: 'btn primary', type: 'button', onClick: addVersion }, icon('plus'), '新建版本'));
-  if (!resumes.length) return h('div', null, head, emptyState('还没有简历版本'));
   const used = (id) => applications.filter((a) => a.resumeId === id).length;
-  return h('div', null, head, h('div', { class: 'resume-grid' }, resumes.map((r) => resumeCard(r, used(r.id)))));
-}
-
-function addVersion() {
-  attempt(() => store.create('resumes', { name: '新版本', track: '', lang: 'zh', notes: '', files: [] }));
+  // 新建版本是网格最后一个虚线框，不另起一条工具栏
+  const add = h('button', { class: 'add-tile', type: 'button', onClick: onAdd }, icon('plus'), '新建版本');
+  return h('div', { class: 'resume-grid' }, resumes.map((r) => resumeCard(r, used(r.id))), add);
 }
 
 async function removeVersion(r, used) {
@@ -78,7 +80,7 @@ function resumeCard(r, used) {
       drop.classList.remove('over');
       upload([...e.dataTransfer.files]);
     },
-  }, icon('upload'), h('span', null, '拖入文件，或点击选择'));
+  }, icon('upload'), h('span', null, '上传'));
 
   const files = (r.files || []).map((file) => {
     const stored = file.stored.replace(/^resumes\//, '');
@@ -89,17 +91,16 @@ function resumeCard(r, used) {
     };
     return h('li', { class: 'file-row' },
       icon('file'),
-      h('a', { class: 'file-name', href: fileUrl(file.stored), target: '_blank', rel: 'noopener', title: file.name }, file.name),
-      h('span', { class: 'muted small' }, `${fileSize(file.size)} · ${timeAgo(file.uploadedAt)}`),
+      h('a', { class: 'file-name', href: fileUrl(file.stored), target: '_blank', rel: 'noopener', title: `${file.name} · ${fileSize(file.size)} · ${timeAgo(file.uploadedAt)}` }, file.name),
       h('button', { class: 'btn sm ghost icon-only', type: 'button', title: '删除文件', onClick: del }, icon('trash')));
   });
 
-  return h('section', { class: 'card resume-card' },
-    h('div', { class: 'card-head' }, h('h3', null, r.name || '未命名版本')),
-    h('div', { class: 'card-body' },
-    h('div', { class: 'resume-top' },
-      input({ value: r.name || '', cls: 'resume-name', placeholder: '版本名称', onChange: (v) => save({ name: v.trim() || '未命名版本' }) }),
+  return h('section', { class: 'card resume-card', dataset: { id: r.id } },
+    // 版本名就写在标题栏里，直接在那儿改
+    h('div', { class: 'card-head' },
+      input({ value: r.name || '', cls: 'title-input', placeholder: '版本名称', onChange: (v) => save({ name: v.trim() || '未命名版本' }) }),
       h('button', { class: 'btn sm ghost icon-only danger', type: 'button', title: '删除这个版本', onClick: () => removeVersion(r, used) }, icon('trash'))),
+    h('div', { class: 'card-body' },
     h('div', { class: 'row' },
       select(TRACKS, r.track || '', (v) => save({ track: v }), { placeholder: '赛道' }),
       select([{ value: 'zh', label: '中文' }, { value: 'en', label: 'English' }], r.lang || 'zh', (v) => save({ lang: v })),
@@ -108,5 +109,5 @@ function resumeCard(r, used) {
     files.length ? h('ul', { class: 'file-list' }, files) : null,
     drop,
     picker,
-    textarea({ value: r.notes || '', rows: 2, placeholder: '备注：这一版的侧重点、改了什么…', onChange: (v) => save({ notes: v }) })));
+    textarea({ value: r.notes || '', rows: 2, placeholder: '备注', onChange: (v) => save({ notes: v }) })));
 }

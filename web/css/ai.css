@@ -25,7 +25,6 @@
 .ai-warn li { display: flex; align-items: center; gap: 6px; }
 .ai-warn .icon { width: 12px; height: 12px; }
 .ai-chat { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px dashed var(--ink-3); }
-.ai-chat h4 { margin: 0; font-size: 13px; }
 .ai-log { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow: auto; }
 .ai-msg { max-width: 90%; padding: 8px 12px; border: 2px solid var(--ink); border-radius: var(--radius); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .ai-msg.user { align-self: flex-end; background: var(--teal-soft); }
@@ -33,7 +32,8 @@
 .ai-msg.err { background: var(--danger-soft); font-weight: 600; }
 .ai-input { display: flex; gap: 8px; align-items: flex-end; }
 .ai-input textarea { flex: 1; min-height: 64px; }
-.ai-modes { align-self: flex-start; }
+.ai-use { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-use .icon { width: 12px; height: 12px; }
 .ai-q-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .ai-points { margin: 2px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 12px; }
 .ai-points li { margin: 2px 0; }

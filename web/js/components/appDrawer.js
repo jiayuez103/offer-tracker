@@ -8,7 +8,7 @@ import {
   STAGES, STAGE_LABEL, STATUS_LABEL, COMPANY_TYPES, TRACKS, BATCHES, CHANNELS,
   INDUSTRY_SUGGESTIONS, INTERVIEW_EVENT_TYPES, EVENT_STAGE,
 } from '../../shared/constants.js';
-import { newId, isClosed, stageIndex, textStats } from '../../shared/domain.js';
+import { newId, isClosed, stageIndex } from '../../shared/domain.js';
 import { dualTime } from '../../shared/time.js';
 import { openEventForm } from './eventForm.js';
 
@@ -76,7 +76,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
     if (app.stage === 'offer') {
       return [btn('接受 Offer', () => save({ status: 'accepted' })), btn('拒绝 Offer', () => save({ status: 'declined' }))];
     }
-    return [btn('我跟进了', followup), btn('放弃', () => save({ status: 'withdrawn' })), btn('挂了', () => save({ status: 'rejected' }), 'danger')];
+    return [btn('记一次跟进', followup), btn('放弃', () => save({ status: 'withdrawn' })), btn('挂了', () => save({ status: 'rejected' }), 'danger')];
   }
 
   function renderHead() {
@@ -145,9 +145,9 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
     const resumes = store.state.resumes.map((r) => ({ value: r.id, label: r.name || '未命名版本' }));
 
     return h('div', { class: 'form-grid' },
-      field('公司', text('company', '如：雀巢')),
-      field('公司英文名', text('companyEn', '如：Nestlé')),
-      field('岗位', text('position', '如：Marketing MT')),
+      field('公司', text('company')),
+      field('公司英文名', text('companyEn')),
+      field('岗位', text('position')),
       field('赛道', pick('track', TRACKS)),
       field('公司类型', pick('companyType', COMPANY_TYPES)),
       field('行业', h('div', null,
@@ -164,7 +164,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
       field('JD 链接', url('jdUrl'), { full: true, tag: 'div' }),
       field('网申入口', url('applyUrl'), { full: true, tag: 'div' }),
       field('官网注册账号', text('account', '注册用的邮箱或手机号（不要填密码）'), { full: true }),
-      field('下一步', text('nextStep', '如：周五前完成 SHL 测评'), { full: true }),
+      field('下一步', text('nextStep'), { full: true }),
       field('备注', textarea({ value: app.notes || '', rows: 4, onChange: (v) => save({ notes: v }) }), { full: true }));
   }
 
@@ -199,7 +199,7 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
         h('span', { class: 'spacer' }),
         h('span', { class: 'muted' }, '自评'),
         stars(r.rating || 0, (v) => saveReview({ rating: v }), 5, '自评')),
-      field('被问到的问题', textarea({ value: r.questions || '', rows: 3, placeholder: '一行一个，面同类岗位前拿出来复习', onChange: (v) => saveReview({ questions: v }) })),
+      field('被问到的问题', textarea({ value: r.questions || '', rows: 3, onChange: (v) => saveReview({ questions: v }) })),
       field('哪里答得好、哪里要改', textarea({ value: r.reflection || '', rows: 3, onChange: (v) => saveReview({ reflection: v }) })));
   }
 
@@ -228,14 +228,11 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
   }
 
   function eventsPane(app) {
-    const s = store.state.settings;
     const add = h('button', { class: 'btn primary sm', type: 'button', onClick: () => openEventForm({ app: get(), onSave: onEventSaved }) }, icon('plus'), '添加日程');
     const events = [...(app.events || [])].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
-    if (!events.length) {
-      return h('div', { class: 'empty' }, h('div', null, `测评、笔试、面试都记在这里，时间会同时显示${s.targetTzLabel}和${s.homeTzLabel}。`), add);
-    }
+    if (!events.length) return h('div', { class: 'empty' }, add);
     return h('div', { class: 'events' },
-      h('div', { class: 'row' }, h('span', { class: 'muted small' }, `共 ${events.length} 个日程`), h('span', { class: 'spacer' }), add),
+      h('div', { class: 'row' }, h('span', { class: 'spacer' }), add),
       events.map((ev) => eventItem(ev)));
   }
 
@@ -243,32 +240,26 @@ export function openAppDrawer(id, { tab = 'info' } = {}) {
   function jdPane(app) {
     const box = textarea({ rows: 18, cls: 'jd-text', placeholder: '加载中…' });
     box.disabled = true;
-    const stats = h('span', { class: 'muted small' });
-    const updateStats = () => { stats.textContent = `${textStats(box.value).chars} 字`; };
-    box.addEventListener('input', updateStats);
     const link = safeUrl(app.jdUrl);
     store.getJd(id)
       .then((text) => { box.value = text; })
       .catch((e) => toast(e.message, { type: 'error' }))
       .finally(() => {
         box.disabled = false;
-        box.placeholder = '把 JD 全文粘贴到这里保存。JD 截止后常被下架，面试前还能在这里复习。';
-        updateStats();
+        box.placeholder = '粘贴 JD 全文';
       });
     return h('div', { class: 'jd-pane' },
       h('div', { class: 'row' },
-        stats,
         h('span', { class: 'spacer' }),
         link ? h('a', { class: 'btn', href: link, target: '_blank', rel: 'noopener' }, icon('external'), '原链接') : null,
         h('button', { class: 'btn', type: 'button', onClick: () => copyText(box.value) }, icon('copy'), '复制'),
         h('button', { class: 'btn primary', type: 'button', onClick: () => attempt(() => store.saveJd(id, box.value), box.value.trim() ? 'JD 已保存' : 'JD 快照已删除') }, '保存')),
-      box,
-      h('div', { class: 'muted small' }, app.jdFile ? `保存在 data/${app.jdFile}` : '还没有保存 JD 快照'));
+      box);
   }
 
   // ---------- 时间线 ----------
   function timelinePane(app) {
-    const note = input({ placeholder: '记一笔，比如：HR 说两周内出结果' });
+    const note = input({ placeholder: '记一笔' });
     const addNote = async () => {
       const text = note.value.trim();
       if (!text) return;

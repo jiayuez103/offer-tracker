@@ -25,6 +25,13 @@ export function h(tag, props, ...children) {
   return el;
 }
 
+/** 换掉 el 的全部子节点；和 h() 一样跳过 null / false。原生 replaceChildren 会把 null 写成文字「null」 */
+export function setChildren(el, ...children) {
+  el.replaceChildren();
+  appendChildren(el, children);
+  return el;
+}
+
 function appendChildren(el, children) {
   for (const c of children) {
     if (c == null || c === false) continue;
@@ -117,7 +124,7 @@ export function openModal({ title, body, actions = [], wide = false, onClose }) 
       h('h2', null, title),
       h('span', { class: 'spacer' }),
       h('button', { type: 'button', class: 'btn ghost sm icon-only', 'aria-label': '关闭', onClick: close }, icon('x'))),
-    h('div', { class: 'modal-body' }, body),
+    body == null ? null : h('div', { class: 'modal-body' }, body),
     foot);
   const overlay = h('div', { class: 'overlay', onMousedown: (e) => { if (e.target === overlay) close(); } }, modal);
   document.body.append(overlay);
@@ -164,7 +171,6 @@ export function openDrawer({ onClose, title = '详情' } = {}) {
   const panel = h('aside', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('div', { class: 'window-bar active' },
       h('span', { class: 'window-title' }, title),
-      h('span', { class: 'window-meta' }, 'esc 关闭'),
       h('button', { type: 'button', class: 'btn ghost sm icon-only', 'aria-label': '关闭', onClick: close }, icon('x'))),
     h('div', { class: 'drawer-head' }, head),
     body);
@@ -352,7 +358,7 @@ export function openApp(id, options) {
 export function openInvite(options) {
   return import('./components/inviteForm.js').then((m) => m.openInviteForm(options)).catch((e) => {
     console.error(e);
-    toast(`打不开粘贴邀请：${e.message}`, { type: 'error' });
+    toast(`打不开粘贴测评邀请：${e.message}`, { type: 'error' });
   });
 }
 

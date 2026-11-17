@@ -2,7 +2,7 @@
 import { store } from '../store.js';
 import { api } from '../api.js';
 import { h, icon, field, input, textarea, select, segmented, attempt, toast, repaintWhenIdle, copyText } from '../ui.js';
-import { todayInZone, formatZoned } from '../../shared/time.js';
+import { todayInZone } from '../../shared/time.js';
 
 const TIMEZONES = [
   ['Asia/Shanghai', '北京'], ['Asia/Hong_Kong', '香港'], ['Asia/Singapore', '新加坡'], ['Asia/Tokyo', '东京'],
@@ -63,51 +63,39 @@ function build() {
     if (s.eventInputTz === s[key]) patch.eventInputTz = v; // 默认录入时区跟着一起改
     save(patch);
   });
-  const nowIso = new Date().toISOString();
   const about = h('p', { class: 'muted small', style: { margin: 0 } }, '秋招 Tracker');
   api.get('/api/ping').then((p) => { about.textContent = `秋招 Tracker v${p.version} · 本地服务运行中`; }).catch(() => {});
 
   return h('div', { class: 'settings' },
     h('div', { class: 'settings-col' },
-    card('提醒',
-      h('div', { class: 'form-grid' },
-        field('多少天没进展算「没动静」', num('staleDays', 1, 90), { hint: '默认 14 天。已经约好下一步日程的投递不算。' }),
-        field('每周投递目标', num('weeklyGoal', 0, 100), { hint: '概览页会显示本周进度；填 0 表示不设目标。' }))),
-    card('时区',
-      h('div', { class: 'form-grid' },
-        field('我所在的时区', tzSelect('homeTz', 'homeTzLabel')),
-        field('显示名', input({ value: s.homeTzLabel, onChange: (v) => save({ homeTzLabel: v.trim() || s.homeTzLabel }) })),
-        field('招聘方的时区', tzSelect('targetTz', 'targetTzLabel')),
-        field('显示名', input({ value: s.targetTzLabel, onChange: (v) => save({ targetTzLabel: v.trim() || s.targetTzLabel }) })),
-        field('录入日程时默认按', segmented(
-          [{ value: s.targetTz, label: s.targetTzLabel }, { value: s.homeTz, label: s.homeTzLabel }],
-          s.eventInputTz,
-          (v) => save({ eventInputTz: v }),
-        ), { tag: 'div', full: true }),
-        h('div', { class: 'field full muted small' },
-          `现在：${s.homeTzLabel} ${formatZoned(nowIso, s.homeTz)} · ${s.targetTzLabel} ${formatZoned(nowIso, s.targetTz)}`))),
-    card('数据',
-      h('p', { style: { marginTop: 0 } }, '所有数据都在 job-tracker/data/ 文件夹里，只存在这台电脑上。同一个文件 30 分钟内最多自动备份一次，放在 data/backups/，每个文件保留最近 30 份。'),
-      h('div', { class: 'row wrap' },
-        h('button', { class: 'btn', type: 'button', onClick: () => attempt(exportAll, '已导出') }, icon('download'), '导出全部数据（JSON）')),
-      h('p', { class: 'muted small', style: { marginBottom: 0 } },
-        '导出文件里没有简历原件和 JD 快照（它们在 data/resumes/ 和 data/jd/）。要找回旧数据，把 data/backups/ 里对应的文件复制回 data/，或者直接让 Claude 帮你恢复。')),
-    card('日历',
-      h('p', { style: { margin: 0 } }, '在「日程」页可以把所有面试、测评和网申截止订阅到苹果日历。 ',
-        h('a', { href: '#/calendar' }, '去日程页'))),
-    card('关于', about)),
+      card('提醒',
+        h('div', { class: 'form-grid' },
+          field('多少天没进展算「没动静」', num('staleDays', 1, 90)),
+          field('每周投递目标', num('weeklyGoal', 0, 100)))),
+      card('时区',
+        h('div', { class: 'form-grid' },
+          field('我所在的时区', tzSelect('homeTz', 'homeTzLabel')),
+          field('显示名', input({ value: s.homeTzLabel, onChange: (v) => save({ homeTzLabel: v.trim() || s.homeTzLabel }) })),
+          field('招聘方的时区', tzSelect('targetTz', 'targetTzLabel')),
+          field('显示名', input({ value: s.targetTzLabel, onChange: (v) => save({ targetTzLabel: v.trim() || s.targetTzLabel }) })),
+          field('录入日程时默认按', segmented(
+            [{ value: s.targetTz, label: s.targetTzLabel }, { value: s.homeTz, label: s.homeTzLabel }],
+            s.eventInputTz,
+            (v) => save({ eventInputTz: v }),
+          ), { tag: 'div', full: true }))),
+      card('数据',
+        h('div', { class: 'row wrap' },
+          h('button', { class: 'btn', type: 'button', onClick: () => attempt(exportAll, '已导出') }, icon('download'), '导出全部数据（JSON）'))),
+      card('关于', about)),
     h('div', { class: 'settings-col' },
-    aiCard(s, save),
-    card('Chrome 插件（秋招助手）',
-      h('ol', { style: { margin: 0, paddingLeft: '20px', lineHeight: 1.9 } },
-        h('li', null, 'Chrome 地址栏打开 chrome://extensions ',
-          h('button', { class: 'btn sm ghost', type: 'button', onClick: () => copyText('chrome://extensions', '地址已复制') }, icon('copy'), '复制')),
-        h('li', null, '打开右上角的「开发者模式」'),
-        h('li', null, '点「加载已解压的扩展程序」，选 job-tracker 里的 extension 文件夹'),
-        h('li', null, '点工具栏的拼图图标，把「秋招助手」固定出来')),
-      h('p', { class: 'muted small', style: { marginBottom: 0 } },
-        '在网申页点插件图标或按 ⌥⇧J 打开侧边栏：一键填写、点选填充、把简历放进上传框、记录投递。插件用的是这里「档案」「简历」「素材库」的内容；Tracker 没启动时也能用上次的缓存填写。')),
-  ));
+      aiCard(s, save),
+      card('Chrome 插件',
+        h('ol', { class: 'steps' },
+          h('li', null, 'chrome://extensions ',
+            h('button', { class: 'btn sm ghost', type: 'button', onClick: () => copyText('chrome://extensions', '地址已复制') }, icon('copy'), '复制')),
+          h('li', null, '打开「开发者模式」'),
+          h('li', null, '「加载已解压的扩展程序」→ 选 extension 文件夹'),
+          h('li', null, '固定「秋招助手」，在网申页按 ⌥⇧J 打开')))));
 }
 
 const AI_FORMATS = [
@@ -139,29 +127,22 @@ function aiCard(s, save) {
       testBtn.disabled = false;
     }
   };
-  return card('AI 服务（改简历用）',
-    h('p', { class: 'muted small', style: { marginTop: 0 } },
-      '用你自己的模型服务。填好之后，每条投递的详情里会多一个「AI」页，按这条 JD 给出匹配诊断和改写建议。'),
+  return card('AI 服务',
     h('div', { class: 'form-grid' },
-      field('启用', h('label', { class: 'row small' },
-        h('input', { type: 'checkbox', checked: !!ai.enabled, onChange: (e) => save({ ai: { enabled: e.target.checked } }) }),
-        '开启后才会调用模型'), { tag: 'div' }),
+      field('启用', h('label', { class: 'row' },
+        h('input', { type: 'checkbox', checked: !!ai.enabled, onChange: (e) => save({ ai: { enabled: e.target.checked } }) })), { tag: 'div' }),
       field('接口格式', segmented(AI_FORMATS, ai.format || 'openai', (v) => save({ ai: { format: v } })), { tag: 'div' }),
       field('服务地址', input({ value: ai.baseUrl || '', placeholder: 'https://api.deepseek.com', onChange: (v) => save({ ai: { baseUrl: v.trim() } }) })),
       field('模型名', input({ value: ai.model || '', placeholder: 'deepseek-chat', onChange: (v) => save({ ai: { model: v.trim() } }) })),
-      field('API key', keyInput, { hint: ai.hasKey ? '已保存在本机，不会显示出来' : '' }),
+      field('API key', keyInput),
       field('禁止出现的内容', textarea({
         rows: 3,
         value: (ai.forbidden || []).join('\n'),
-        placeholder: '一行一条，比如某个不能写进简历的数字',
+        placeholder: '一行一条',
         onChange: (v) => save({ ai: { forbidden: v.split('\n').map((x) => x.trim()).filter(Boolean) } }),
       }), { full: true })),
-    h('div', { class: 'row', style: { marginTop: '10px' } },
+    h('div', { class: 'row' },
       testBtn,
       ai.hasKey ? h('button', { class: 'btn ghost', type: 'button', onClick: () => save({ ai: { apiKey: null } }) }, '清除 key') : null,
-      result),
-    h('p', { class: 'muted small', style: { marginBottom: 0 } },
-      'DeepSeek：地址 https://api.deepseek.com，模型 deepseek-chat。本地 Ollama：地址 http://localhost:11434/v1，模型填你拉下来的名字，key 留空。',
-      h('br'),
-      '发给模型的只有 JD 和档案里的经历内容；手机号、邮箱、微信、生日这些一概不发。key 只存在本机 data/settings.json。'));
+      result));
 }

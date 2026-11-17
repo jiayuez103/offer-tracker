@@ -50,12 +50,8 @@ export function render(root, { params }) {
     const apps = store.state.applications.filter((a) => (!prefs.track || a.track === prefs.track)
       && (!prefs.type || a.companyType === prefs.type)
       && matches(a, q));
-    const visible = prefs.mode === 'list' ? apps.filter((a) => statusMatch(a, prefs.status)) : apps;
-    toolbar.replaceChildren(...renderToolbar(prefs, draw, q, visible.length).filter(Boolean));
-    content.replaceChildren(
-      store.state.applications.length ? '' : renderWelcome(),
-      prefs.mode === 'board' ? renderBoard(apps, prefs, draw) : renderList(apps, prefs, draw),
-    );
+    toolbar.replaceChildren(...renderToolbar(prefs, draw, q).filter(Boolean));
+    content.replaceChildren(prefs.mode === 'board' ? renderBoard(apps, prefs, draw) : renderList(apps, prefs, draw));
   };
 
   draw();
@@ -67,7 +63,7 @@ export function render(root, { params }) {
   return unsubscribe;
 }
 
-function renderToolbar(prefs, redraw, q, count) {
+function renderToolbar(prefs, redraw, q) {
   const set = (key) => (value) => {
     prefs[key] = value;
     savePrefs(prefs);
@@ -82,19 +78,11 @@ function renderToolbar(prefs, redraw, q, count) {
       : null,
     q ? h('span', { class: 'chip accent search-chip' }, `搜索：${q}`,
       h('button', { type: 'button', 'aria-label': '清除搜索', onClick: () => { location.hash = '#/applications'; } }, '×')) : null,
-    h('span', { class: 'spacer' }),
-    h('span', { class: 'apps-count' }, `共 ${count} 条`),
-    h('button', { class: 'btn primary', type: 'button', onClick: () => openNewApp() }, icon('plus'), '新建投递'),
   ];
 }
 
-function renderWelcome() {
-  return h('div', { class: 'card apps-welcome' },
-    h('div', null,
-      h('h3', null, '还没有投递记录'),
-      h('p', { class: 'muted' }, '点「新建投递」或按 N，粘贴 JD 就能自动拆出公司、岗位、城市和截止日。')),
-    h('button', { class: 'btn primary', type: 'button', onClick: () => openNewApp() }, icon('plus'), '新建投递'));
-}
+/** 一条投递都没有时，放在视线落点上的唯一入口 */
+const firstAppButton = (cls) => h('button', { class: cls, type: 'button', onClick: () => openNewApp() }, icon('plus'), '记第一条投递');
 
 // ---------- 看板 ----------
 
@@ -146,18 +134,18 @@ function renderBoard(apps, prefs, redraw) {
           : null),
       h('div', { class: 'col-list' },
         items.map((a) => renderCard(a, now)),
-        items.length ? null : h('div', { class: 'col-empty' }, col.key === 'wishlist' ? '把想投的岗位先收在这里' : '拖到这里')));
+        items.length ? null : (col.key === 'wishlist' && !store.state.applications.length ? firstAppButton('col-empty add') : h('div', { class: 'col-empty' }))));
     bindDrop(column, col.key);
     board.append(column);
   }
   return h('section', { class: 'card board-window' },
-    h('div', { class: 'card-head' }, h('h3', null, '投递看板'), h('span', { class: 'head-meta' }, '拖动卡片改阶段')),
+    h('div', { class: 'card-head' }, h('h3', null, '投递看板')),
     h('div', { class: 'card-body' }, board));
 }
 
 function cardFoot(app, now) {
   const settings = store.state.settings;
-  if (isClosed(app)) return h('span', { class: 'card-meta' }, `${STATUS_LABEL[app.status]}在：${STAGE_LABEL[app.stage]}`);
+  if (isClosed(app)) return h('span', { class: 'card-meta' }, `${STATUS_LABEL[app.status]} · ${STAGE_LABEL[app.stage]}`);
   const ev = nextEvent(app, now);
   if (ev) {
     return h('span', { class: 'card-meta upcoming' }, icon('clock'), `${ev.type} · ${dualTime(ev.at, ev.tz, settings).primary}`);
@@ -168,7 +156,6 @@ function cardFoot(app, now) {
     return h('span', { class: ['card-meta', d <= 3 && 'urgent'] }, icon('flag'), text);
   }
   if (isStale(app, settings, now)) return h('span', { class: 'card-meta stale' }, icon('alert'), `${daysSinceProgress(app, now)} 天没动静`);
-  if (app.appliedAt) return h('span', { class: 'card-meta' }, `投递于 ${app.appliedAt.slice(5).replace('-', '/')}`);
   return null;
 }
 
@@ -193,8 +180,7 @@ function renderCard(app, now) {
   h('div', { class: 'card-position' }, app.position || '—'),
   h('div', { class: 'card-tags' },
     app.track ? h('span', { class: ['chip', trackClass(app.track)] }, app.track) : null,
-    app.cities ? h('span', { class: 'chip' }, app.cities) : null,
-    app.companyType ? h('span', { class: 'chip' }, app.companyType) : null),
+    app.cities ? h('span', { class: 'chip', title: app.cities }, app.cities) : null),
   cardFoot(app, now));
   return card;
 }
@@ -228,7 +214,7 @@ function bindDrop(column, key) {
 function chooseCloseReason(app) {
   openModal({
     title: `结束「${app.company || app.position}」`,
-    body: h('p', { class: 'muted', style: { margin: 0 } }, `会记下它停在「${STAGE_LABEL[app.stage]}」这一轮。`),
+    body: null,
     actions: [
       { label: '取消', ghost: true, onClick: (close) => close() },
       { label: '我放弃了', onClick: (close) => { close(); attempt(() => store.updateApplication(app.id, { status: 'withdrawn' })); } },
@@ -262,7 +248,7 @@ function renderList(apps, prefs, redraw) {
   const now = new Date();
   const settings = store.state.settings;
   const rows = apps.filter((a) => statusMatch(a, prefs.status));
-  if (!rows.length) return emptyState(apps.length ? '没有符合条件的投递' : '还没有投递记录');
+  if (!rows.length) return store.state.applications.length ? emptyState('没有符合条件的投递') : h('div', { class: 'empty' }, firstAppButton('btn primary'));
   const col = LIST_COLUMNS.find((c) => c.key === prefs.sort) || LIST_COLUMNS[6];
   const dir = prefs.dir === 'desc' ? -1 : 1;
   const sortValue = (a) => (col.key === 'next' ? (nextEvent(a, now) ? Date.parse(nextEvent(a, now).at) : '') : col.get(a, now));
@@ -285,22 +271,20 @@ function renderList(apps, prefs, redraw) {
     const urgent = deadlineLeft != null && deadlineLeft <= 3;
     const stale = isStale(a, settings, now);
     return h('tr', { onClick: () => openApp(a.id) },
-      h('td', { class: 'cell-company' }, h('b', null, a.company || a.companyEn || '未命名公司'), a.company && a.companyEn ? h('span', { class: 'cell-sub' }, a.companyEn) : null),
+      h('td', { class: 'cell-company' }, h('b', null, a.company || a.companyEn || '未命名公司')),
       h('td', null, a.position || '—'),
       h('td', null, a.track ? h('span', { class: ['chip', trackClass(a.track)] }, a.track) : ''),
       h('td', null, stageChip(a)),
       h('td', null, a.appliedAt || '—'),
       h('td', { class: urgent ? 'urgent-text' : '' },
         a.deadline || '—',
-        deadlineLeft != null && deadlineLeft >= 0
-          ? (urgent ? h('span', { class: 'flag warn' }, icon('alert'), `剩 ${deadlineLeft} 天`) : h('span', { class: 'cell-sub' }, ` 剩 ${deadlineLeft} 天`))
-          : null),
+        urgent && deadlineLeft >= 0 ? h('span', { class: 'flag warn' }, icon('alert'), `剩 ${deadlineLeft} 天`) : null),
       h('td', null, ev ? `${ev.type} · ${dualTime(ev.at, ev.tz, settings).primary}` : '—'),
       h('td', { class: stale ? 'stale-text' : '' }, stale ? icon('alert') : null, days === 0 ? '今天' : `${days} 天前`));
   });
 
   return h('section', { class: 'card list-window' },
-    h('div', { class: 'card-head' }, h('h3', null, '投递列表'), h('span', { class: 'head-meta' }, '点表头排序')),
+    h('div', { class: 'card-head' }, h('h3', null, `投递列表 · ${rows.length}`)),
     h('div', { class: 'table-wrap' },
       h('table', { class: 'apps-table' }, h('thead', null, head), h('tbody', null, body))));
 }

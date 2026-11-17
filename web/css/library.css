@@ -1,17 +1,17 @@
-.lib-head {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 14px; padding: 8px 12px;
-  border: 2px solid var(--ink); border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow-3);
-}
-.lib-head p { margin: 0; color: var(--ink-2); font-size: 12px; }
 
 /* ---------- 简历：每个版本一个窗口 ---------- */
 .resume-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
 .resume-card .card-body { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
-.resume-top { display: flex; align-items: center; gap: 6px; }
-.resume-name { font-weight: 700; }
+/* 网格最后一格：虚线框就是「再加一个」 */
+.add-tile {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 200px;
+  border: 2px dashed var(--ink); border-radius: var(--radius-lg);
+  background: transparent; color: var(--ink);
+  font: inherit; font-weight: 700;
+  cursor: pointer;
+}
+.add-tile:hover, .add-tile:focus-visible { background: var(--teal-softer); outline: none; }
 .resume-card .row .select { width: auto; min-width: 96px; }
 .file-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .file-row { display: flex; align-items: center; gap: 8px; padding: 4px 2px; }

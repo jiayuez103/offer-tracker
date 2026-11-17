@@ -1,6 +1,5 @@
 .cal { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; max-width: 1320px; }
 .cal-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.cal-toolbar label { cursor: pointer; }
 .cal-list { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 12px; }
 .cal-date { margin: 4px 0 2px 8px; color: var(--ink-2); font-size: 12px; font-weight: 700; }
 .cal-day.today .cal-date { color: var(--accent-text); }

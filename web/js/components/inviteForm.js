@@ -2,7 +2,7 @@
 // 不保存邮件原文，只留解析出来的字段和一句依据。
 import { api } from '../api.js';
 import { store } from '../store.js';
-import { h, field, input, textarea, select, segmented, openModal, toast, openApp, ensureCss } from '../ui.js';
+import { h, field, input, textarea, select, segmented, openModal, toast, openApp, ensureCss, debounce } from '../ui.js';
 import { EVENT_TYPES } from '../../shared/constants.js';
 import { newId, stageIndex } from '../../shared/domain.js';
 import { parseInvite, deadlineFrom } from '../../shared/invite.js';
@@ -36,7 +36,9 @@ export function openInviteForm({ pending = null } = {}) {
   const draft = { type: '测评', durationMin: 60, link: '', appId: NEW_APP, company: '', position: '', advance: true };
 
   let raw = '';
-  const paste = textarea({ rows: 7, placeholder: '把邀请邮件的正文整段粘进来，自动认出公司、测评类型和截止时间', onInput: (v) => { raw = v; } });
+  // 粘进去（或改完）停一下就自动识别，下面的表单随之出现
+  const recognizeSoon = debounce(() => { if (raw.trim()) run(); }, 400);
+  const paste = textarea({ rows: 7, placeholder: '粘贴邀请邮件正文', onInput: (v) => { raw = v; recognizeSoon(); } });
   const preview = h('div', { class: 'form-grid' });
   const basis = h('p', { class: 'muted small full' });
 
@@ -53,13 +55,11 @@ export function openInviteForm({ pending = null } = {}) {
 
     const draw = () => {
       if (useWindow) local = recompute();
-      if (!local) {
-        box.textContent = useWindow ? '填上收到时间就会自动算出截止时间' : '手动填一个截止时间';
-        box.classList.add('warn');
-      } else {
+      // 有截止时间才显示这块，直接给结果
+      box.hidden = !local;
+      if (local) {
         const iso = zonedToISO(local, tz);
         box.textContent = `截止：${dualTime(iso, tz, s).primary} · ${dualTime(iso, tz, s).secondary}`;
-        box.classList.remove('warn');
       }
     };
 
@@ -103,7 +103,7 @@ export function openInviteForm({ pending = null } = {}) {
           class: 'link',
           type: 'button',
           onClick: () => { useWindow = !useWindow; redraw(); draw(); },
-        }, useWindow ? '邮件写的是具体日期？直接填截止时间' : '改回按「收到后 N 天」算')));
+        }, useWindow ? '直接填截止时间' : '按收到时间算')));
       draw();
     };
 
@@ -115,8 +115,8 @@ export function openInviteForm({ pending = null } = {}) {
     const options = appOptions(apps, draft.company);
     const newFields = draft.appId === NEW_APP
       ? [
-        field('公司', input({ value: draft.company, placeholder: '如：雀巢', onInput: (v) => { draft.company = v; } })),
-        field('岗位', input({ value: draft.position, placeholder: '如：Marketing MT', onInput: (v) => { draft.position = v; } })),
+        field('公司', input({ value: draft.company, onInput: (v) => { draft.company = v; } })),
+        field('岗位', input({ value: draft.position, onInput: (v) => { draft.position = v; } })),
       ]
       : [h('div', { class: 'field' }, h('span', null, '阶段'), h('label', { class: 'row small' },
         h('input', {
@@ -129,7 +129,7 @@ export function openInviteForm({ pending = null } = {}) {
       field('类型', select(EVENT_TYPES, draft.type, (v) => { draft.type = v; })),
       field('时长', select(DURATIONS, String(draft.durationMin), (v) => { draft.durationMin = Number(v); })),
       ...timeRow(),
-      field('链接', input({ value: draft.link, placeholder: '测评 / 面试链接', onInput: (v) => { draft.link = v.trim(); } })),
+      field('链接', input({ value: draft.link, onInput: (v) => { draft.link = v.trim(); } })),
       field('记到哪条投递', select([...options, { value: NEW_APP, label: '＋ 新建一条投递' }], draft.appId, (v) => {
         draft.appId = v;
         drawPreview();
@@ -162,14 +162,12 @@ export function openInviteForm({ pending = null } = {}) {
     const match = apps.find((a) => a.company === parsed.company && a.status === 'active');
     draft.appId = match ? match.id : NEW_APP;
     draft.advance = Boolean(match && stageIndex(match.stage) < stageIndex('assessment'));
-    basis.textContent = parsed.basis ? `依据：「${parsed.basis}」。` : '邮件里没写明期限，请自己填。';
+    basis.textContent = parsed.basis ? `「${parsed.basis}」` : '没找到期限';
     drawPreview();
   }
 
   const body = h('div', { class: 'invite-form' },
-    h('p', { class: 'muted small' }, '只存解析出来的时间和链接，不会保存邮件原文。'),
     paste,
-    h('div', { class: 'row' }, h('button', { class: 'btn', type: 'button', onClick: run }, '识别')),
     preview);
 
   async function save(close) {
@@ -223,7 +221,7 @@ export function openInviteForm({ pending = null } = {}) {
   }
 
   const modal = openModal({
-    title: '粘贴邀请邮件',
+    title: '粘贴测评邀请',
     body,
     wide: true,
     actions: [

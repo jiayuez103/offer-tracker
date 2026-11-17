@@ -189,7 +189,7 @@ test('截止型日程一直提醒，直到做完', () => {
   const items = actionItems(apps, DEFAULT_SETTINGS, NOW).filter((i) => i.event);
   assert.deepEqual(items.map((i) => i.app.company), ['近', '远', '过期']);
   assert.equal(items[0].text, 'AI面还剩 9 小时');
-  assert.equal(items[1].text, '测评还剩 5 天（窗口共 5 天）');
+  assert.equal(items[1].text, '测评还剩 5 天');
   assert.equal(items[2].text, '测评已过期 2 天');
   assert.equal(items[0].kind, 'test');
   assert.equal(items[2].kind, 'overdue');

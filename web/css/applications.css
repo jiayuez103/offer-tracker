@@ -1,11 +1,8 @@
 .apps-toolbar { margin-bottom: 14px; }
 .apps-toolbar .select { width: auto; min-width: 118px; }
-.apps-count { color: var(--ink-2); font: 12px var(--mono); }
 .search-chip { height: 26px; padding: 0 4px 0 10px; }
 .search-chip button { padding: 0 4px; border: 0; background: none; color: inherit; font-size: 15px; cursor: pointer; }
 
-.apps-welcome { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 16px 20px; margin-bottom: 14px; }
-.apps-welcome p { margin: 4px 0 0; }
 
 /* 看板：一个窗口里 6 条泳道 + 「已结束」；收起时「已结束」是一条 44px 的窄边 */
 .board-window .card-body { padding: 12px; }
@@ -33,11 +30,18 @@
 .col-head .btn { margin: -4px -6px -4px 0; }
 /* 右边和下边给卡片的硬阴影留位置 */
 .col-list { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 64px; padding: 2px 10px 12px 8px; overflow: hidden auto; }
-.col-empty {
-  padding: 14px 8px;
-  border: 2px dashed var(--ink-3); border-radius: var(--radius);
-  color: var(--ink-2); font-size: 12px; text-align: center;
+/* 空泳道只留一个虚线框，泳道标题已经说明了它是什么 */
+.col-empty { min-height: 56px; border: 2px dashed var(--ink-3); border-radius: var(--radius); }
+/* 一条投递都没有时，第一列的空框就是入口 */
+.col-empty.add {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  border: 2px solid var(--ink);
+  background: var(--teal-soft); color: var(--ink);
+  box-shadow: var(--shadow-2);
+  font: inherit; font-weight: 700;
+  cursor: pointer;
 }
+.col-empty.add:hover { background: var(--teal-hover); }
 .col.collapsed { align-items: center; gap: 10px; padding: 12px 0; background: var(--surface-3); cursor: pointer; }
 .col.collapsed:hover, .col.collapsed:focus-visible { background: var(--st-closed); }
 .col.collapsed .col-count { margin: 0; }
@@ -48,9 +52,10 @@
   padding: 10px 12px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-3);
-  cursor: pointer;
+  cursor: grab; /* 看得出能拖 */
   transition: transform 0.08s, box-shadow 0.08s, opacity 0.12s;
 }
+.app-card:active { cursor: grabbing; }
 .app-card:hover { transform: translate(-1px, -1px); box-shadow: var(--shadow-4); }
 .app-card.dragging { opacity: 0.45; transform: rotate(-3deg); }
 .app-card.closed { opacity: 0.7; box-shadow: none; }
@@ -87,7 +92,6 @@
 .apps-table tbody tr:hover { background: var(--teal-softer); }
 .apps-table tbody tr:last-child td { border-bottom: 0; }
 .cell-company b { display: block; font-weight: 700; }
-.cell-sub { color: var(--ink-3); font-size: 11.5px; }
 .stale-text { font-weight: 700; }
 .stale-text .icon { margin-right: 4px; vertical-align: -3px; }
 .urgent-text .flag { margin-left: 6px; }

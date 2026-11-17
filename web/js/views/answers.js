@@ -50,18 +50,18 @@ export function render(root) {
   const filter = loadFilter();
   const chips = h('div', { class: 'cat-chips' });
   const list = h('div', { class: 'answer-grid' });
-  const search = input({ placeholder: '搜索题目、回答、标签', onInput: (v) => { filter.q = v.trim().toLowerCase(); drawList(); } });
+  const search = input({ placeholder: '搜索', onInput: (v) => { filter.q = v.trim().toLowerCase(); drawList(); } });
   const lang = segmented(
     [{ value: '', label: '全部' }, { value: 'zh', label: '中文' }, { value: 'en', label: 'English' }],
     filter.lang,
     (v) => { filter.lang = v; saveFilter(filter); drawList(); },
   );
   root.append(
-    h('div', { class: 'lib-head' },
-      h('p', { class: 'muted' }, '网申开放题写过一次就存下来，下次遇到同类题改一改就能用。'),
+    h('div', { class: 'lib-toolbar' },
+      h('div', { class: 'lib-search' }, search),
+      lang,
       h('span', { class: 'spacer' }),
       h('button', { class: 'btn primary', type: 'button', onClick: () => openEditor(null, filter) }, icon('plus'), '新建素材')),
-    h('div', { class: 'lib-toolbar' }, h('div', { class: 'lib-search' }, search), lang),
     chips,
     list);
 
@@ -84,7 +84,7 @@ export function render(root) {
       .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
     list.replaceChildren(...(items.length
       ? items.map((a) => answerCard(a, filter))
-      : [emptyState(store.state.answers.length ? '没有符合条件的素材' : '还没有素材。先把最常被问的「为什么选择我们」写下来吧。')]));
+      : [emptyState(store.state.answers.length ? '没有符合条件的素材' : '还没有素材')]));
   }
 
   const draw = () => {
@@ -106,15 +106,11 @@ function answerCard(a, filter) {
   },
   h('div', { class: 'row' },
     h('span', { class: 'chip accent' }, a.category || '其他'),
-    h('span', { class: 'chip' }, a.lang === 'en' ? 'English' : '中文'),
     h('span', { class: 'spacer' }),
     h('button', { class: 'btn sm ghost', type: 'button', onClick: (e) => { e.stopPropagation(); copyText(a.text || ''); } }, icon('copy'), '复制')),
   h('h3', { class: 'answer-q' }, a.question || '（没填题目）'),
   h('p', { class: 'answer-text' }, a.text || '还没写回答'),
-  h('div', { class: 'muted small' },
-    statsText(a.text, a.lang),
-    a.usedIn?.length ? ` · 用在 ${a.usedIn.length} 处` : '',
-    a.tags?.length ? ` · ${a.tags.join(' / ')}` : ''));
+  h('div', { class: 'muted small' }, statsText(a.text, a.lang)));
 }
 
 function openEditor(answer, filter) {
@@ -142,7 +138,7 @@ function openEditor(answer, filter) {
         if (!v) return;
         draft.usedIn = [...draft.usedIn, v];
         paintUsed();
-      }, { placeholder: '+ 记下用在哪条投递', cls: 'used-select' }));
+      }, { placeholder: '+ 添加投递', cls: 'used-select' }));
   };
   paintUsed();
 
@@ -150,12 +146,12 @@ function openEditor(answer, filter) {
     field('分类', select(ANSWER_CATEGORIES, draft.category, (v) => { draft.category = v; fillSuggestions(); })),
     field('语言', segmented([{ value: 'zh', label: '中文' }, { value: 'en', label: 'English' }], draft.lang, (v) => { draft.lang = v; updateStats(); }), { tag: 'div' }),
     field('题目', h('div', null,
-      input({ value: draft.question, placeholder: '题目原文（输入框里有常见题目可选）', list: 'jt-question-suggestions', onInput: (v) => { draft.question = v; } }),
+      input({ value: draft.question, list: 'jt-question-suggestions', onInput: (v) => { draft.question = v; } }),
       suggestions), { full: true }),
-    field('回答', textarea({ value: draft.text, rows: 12, placeholder: '你的回答', onInput: (v) => { draft.text = v; updateStats(); } }), { full: true, hint: stats }),
+    field('回答', textarea({ value: draft.text, rows: 12, onInput: (v) => { draft.text = v; updateStats(); } }), { full: true, hint: stats }),
     field('标签', input({
       value: draft.tags.join('，'),
-      placeholder: '用逗号分隔，比如：快消，领导力',
+      placeholder: '用逗号分隔',
       onInput: (v) => { draft.tags = v.split(/[,，]/).map((t) => t.trim()).filter(Boolean); },
     }), { full: true }),
     field('用在了', usedWrap, { full: true, tag: 'div' }));
