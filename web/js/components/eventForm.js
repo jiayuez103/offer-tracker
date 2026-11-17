@@ -17,24 +17,22 @@ export function openEventForm({ app, event, onSave }) {
   let local = draft.at ? isoToLocalInput(draft.at, draft.tz) : '';
 
   const preview = h('div', { class: 'tz-preview muted small' });
+  // 选了时间才显示换算结果
   const updatePreview = () => {
-    if (!local) {
-      preview.textContent = '选好时间后，这里会显示换算到另一个时区的时间';
-      return;
-    }
-    preview.textContent = `= ${dualTime(zonedToISO(local, draft.tz), draft.tz, s).secondary}`;
+    preview.hidden = !local;
+    if (local) preview.textContent = `= ${dualTime(zonedToISO(local, draft.tz), draft.tz, s).secondary}`;
   };
 
   const when = input({ type: 'datetime-local', value: local, onInput: (v) => { local = v; updatePreview(); } });
   const tzOptions = [{ value: s.targetTz, label: s.targetTzLabel }, { value: s.homeTz, label: s.homeTzLabel }];
   const body = h('div', { class: 'form-grid' },
     field('类型', select(EVENT_TYPES, draft.type, (v) => { draft.type = v; })),
-    field('标题（可选）', input({ value: draft.title, placeholder: '如：二面（业务）', onInput: (v) => { draft.title = v; } })),
+    field('标题（可选）', input({ value: draft.title, onInput: (v) => { draft.title = v; } })),
     field('时间', when),
     // 换时区时墙上时间不变：用户的意思是「这个时间是北京时间」
     field('这个时间是', segmented(tzOptions, draft.tz, (v) => { draft.tz = v; updatePreview(); }), { tag: 'div' }),
     field('时长', select(DURATIONS, String(draft.durationMin || 60), (v) => { draft.durationMin = Number(v); })),
-    field('地点 / 会议链接', input({ value: draft.location, placeholder: '会议链接或面试地址', onInput: (v) => { draft.location = v.trim(); } })),
+    field('地点 / 会议链接', input({ value: draft.location, onInput: (v) => { draft.location = v.trim(); } })),
     h('div', { class: 'field full' }, preview));
   updatePreview();
 

@@ -4,7 +4,7 @@ import { api } from '../api.js';
 import { h, icon, ensureCss, openApp, openNewApp, openInvite, eventChip, deadlineChip } from '../ui.js';
 import { pixelText } from '../pixel.js';
 import { STAGE_LABEL, TRACKS } from '../../shared/constants.js';
-import { actionItems, funnel, weeklyApplied, stageIndex, isClosed } from '../../shared/domain.js';
+import { actionItems, funnel, weeklyApplied, stageIndex, isClosed, asBi } from '../../shared/domain.js';
 import { todayInZone, formatZoned, isoToLocalInput, zonedToISO, deadlineISO, addDays, diffDays } from '../../shared/time.js';
 
 const KIND_ICON = { test: 'clock', meeting: 'calendar', deadline: 'flag', review: 'message', stale: 'alert', overdue: 'alert' };
@@ -79,15 +79,24 @@ function build() {
 }
 
 function welcome() {
-  return h('div', { class: 'card dash-welcome' },
-    h('h2', null, '开始记录秋招'),
-    h('ol', { class: 'muted' },
-      h('li', null, '在「档案」里核对从简历导入的信息，补上网申常问的字段'),
-      h('li', null, '在「简历」里放好各个版本的 PDF'),
-      h('li', null, '每投一家就「新建投递」，粘贴 JD 会自动识别公司、岗位和截止日')),
-    h('div', { class: 'row' },
-      h('button', { class: 'btn primary', type: 'button', onClick: () => openNewApp() }, icon('plus'), '新建投递'),
-      h('a', { class: 'btn', href: '#/profile' }, '去看档案')));
+  const { profile, resumes } = store.state;
+  const name = asBi(profile?.basic?.name);
+  // 三步按顺序排开：做完的打勾，还没做的第一步就是下一步，高亮成主按钮
+  const steps = [
+    { icon: 'idcard', label: '填个人档案', done: Boolean(name.zh || name.en || profile?.basic?.email), go: () => { location.hash = '#/profile'; } },
+    { icon: 'document', label: '上传简历', done: resumes.some((r) => (r.files || []).length), go: () => { location.hash = '#/resumes'; } },
+    { icon: 'briefcase', label: '记第一条投递', done: false, go: () => openNewApp() },
+  ];
+  const next = steps.findIndex((s) => !s.done);
+  return h('section', { class: 'card dash-welcome' },
+    h('div', { class: 'card-head' }, h('h3', null, '开始')),
+    h('div', { class: 'card-body steps-row' }, steps.map((s, i) => [
+      i ? icon('chevron', 'icon step-arrow') : null,
+      h('button', { type: 'button', class: ['step', s.done && 'done', i === next && 'next'], onClick: s.go },
+        s.done ? icon('check') : pixelText(String(i + 1), 21),
+        icon(s.icon),
+        h('span', null, s.label)),
+    ])));
 }
 
 // ---------- 今明两天 ----------
@@ -131,7 +140,6 @@ function digestBar(apps, settings, now) {
     const at = Date.parse(it.event.at);
     return at >= now.getTime() && at <= limit;
   });
-  const paste = h('button', { class: 'btn sm', type: 'button', onClick: openInvite }, icon('mail'), '粘贴邀请');
   if (!items.length) return null;
   return h('section', { class: 'digest' },
     h('span', { class: 'digest-label' }, icon('clock'), '今明两天'),
@@ -142,17 +150,14 @@ function digestBar(apps, settings, now) {
         onClick: () => openApp(it.app.id, { tab: it.event ? 'events' : 'info' }),
       },
       h('b', null, it.app.company || it.app.position || '未命名'),
-      h('span', null, it.text))))),
-    h('span', { class: 'spacer' }),
-    paste);
+      h('span', null, it.text))))));
 }
 
 // ---------- 数字卡片 ----------
-function tile(label, value, sub) {
+function tile(label, value) {
   return h('div', { class: 'card kpi' },
     h('div', { class: 'kpi-label' }, label),
-    h('div', { class: 'kpi-value' }, pixelText(String(value), 34)),
-    h('div', { class: 'kpi-sub' }, sub));
+    h('div', { class: 'kpi-value' }, pixelText(String(value), 34)));
 }
 
 function weekTile(count, goal) {
@@ -163,7 +168,7 @@ function weekTile(count, goal) {
     goal
       ? h('div', { class: 'meter', role: 'meter', 'aria-label': '本周投递进度', 'aria-valuenow': String(count), 'aria-valuemin': '0', 'aria-valuemax': String(goal) },
         h('span', { style: { width: `${pct}%` } }))
-      : h('div', { class: 'kpi-sub' }, '可以在「设置」里定个周目标'));
+      : null);
 }
 
 function kpiRow(apps, settings, today) {
@@ -171,12 +176,11 @@ function kpiRow(apps, settings, today) {
   const active = submitted.filter((a) => a.status === 'active');
   const interviewing = active.filter((a) => a.stage === 'interview' || a.stage === 'final');
   const offers = apps.filter((a) => a.stage === 'offer' && !isClosed(a));
-  const accepted = offers.filter((a) => a.status === 'accepted').length;
   return h('div', { class: 'kpis' },
-    tile('已投递', submitted.length, `还有 ${apps.length - submitted.length} 个待投递`),
-    tile('进行中', active.length, `已结束 ${submitted.filter(isClosed).length} 个`),
-    tile('面试中', interviewing.length, `其中终面 ${interviewing.filter((a) => a.stage === 'final').length} 个`),
-    tile('Offer', offers.length, accepted ? `已接受 ${accepted} 个` : '—'),
+    tile('已投递', submitted.length),
+    tile('进行中', active.length),
+    tile('面试中', interviewing.length),
+    tile('Offer', offers.length),
     weekTile(weeklyApplied(apps, 1, today)[0].count, settings.weeklyGoal || 0));
 }
 
@@ -196,8 +200,9 @@ function actionCard(apps, settings, now) {
         h('span', { class: 'todo-main' },
           h('b', null, it.app.company || it.app.position || '未命名'),
           it.app.company && it.app.position ? h('span', { class: 'muted' }, ` · ${it.app.position}`) : null),
-        h('span', { class: 'todo-text' }, it.text)))))
-      : h('div', { class: 'empty small' }, '暂时没有要处理的事')));
+        h('span', { class: 'todo-text' }, it.text),
+        icon('chevron', 'icon go')))))
+      : h('div', { class: 'empty small' }, '没有要处理的事')));
 }
 
 // ---------- 未来 7 天 ----------
@@ -236,7 +241,6 @@ function agendaCard(apps, settings, now) {
       h('h3', null, '未来 7 天'),
       h('a', { href: '#/calendar' }, '全部日程')),
     h('div', { class: 'card-body' },
-      h('p', { class: 'card-note' }, `按${settings.homeTzLabel}时间分组 · 右侧是${settings.targetTzLabel}时间`),
       rows.length
         ? [...groups].map(([day, list]) => h('div', { class: 'agenda-day' },
           h('div', { class: 'agenda-date' }, dayLabel(day)),
@@ -253,15 +257,16 @@ function agendaRow(r, settings) {
     h('span', { class: 'agenda-time' }, hm(iso, settings.homeTz)),
     r.deadline ? deadlineChip() : eventChip(r.ev.type),
     h('span', { class: 'agenda-what' }, what),
-    h('span', { class: 'agenda-other muted' }, `${settings.targetTzLabel} ${formatZoned(iso, settings.targetTz)}`));
+    h('span', { class: 'agenda-other muted' }, `${settings.targetTzLabel} ${formatZoned(iso, settings.targetTz)}`),
+    icon('chevron', 'icon go'));
 }
 
 // ---------- 漏斗 ----------
 function funnelCard(apps) {
   const rows = funnel(apps);
   const base = rows[0].count;
-  const body = base
-    ? h('div', { class: 'funnel' }, rows.map((r, i) => {
+  if (!base) return null; // 还没投出去，整张卡片不出现
+  const body = h('div', { class: 'funnel' }, rows.map((r, i) => {
       const share = r.count / base;
       const prev = i ? rows[i - 1].count : 0;
       const conv = i && prev ? Math.round((r.count / prev) * 100) : null;
@@ -271,11 +276,10 @@ function funnelCard(apps) {
         h('span', { class: 'funnel-track' },
           r.count ? h('span', { class: `funnel-bar ${r.key}`, style: { width: `${(share * 82).toFixed(1)}%` } }) : null,
           h('span', { class: 'funnel-value' }, String(r.count), conv != null ? h('span', { class: 'muted' }, ` ${conv}%`) : null)));
-    }))
-    : h('div', { class: 'empty small' }, '投出第一份之后，这里会显示每一轮的通过情况');
+    }));
   return h('section', { class: 'card' },
     h('div', { class: 'card-head' }, h('h3', null, '投递漏斗')),
-    h('div', { class: 'card-body' }, h('p', { class: 'card-note' }, '按到达过的最高阶段 · 百分比是上一步转化率'), body));
+    h('div', { class: 'card-body' }, body));
 }
 
 // ---------- 每周投递 ----------
@@ -287,7 +291,6 @@ function weeklyCard(apps, settings, today) {
   return h('section', { class: 'card' },
     h('div', { class: 'card-head' }, h('h3', null, '每周投递')),
     h('div', { class: 'card-body' },
-      h('p', { class: 'card-note' }, '近 8 周 · 周一开始'),
       h('div', { class: 'weekly', style: { height: `${PLOT_HEIGHT + LABEL_BAND + 26}px` } },
         goal ? h('div', { class: 'goal-line', style: { bottom: `${LABEL_BAND + y(goal)}px` } }, h('span', null, `目标 ${goal}`)) : null,
         weeks.map((w, i) => {
@@ -312,18 +315,16 @@ function trackCard(apps) {
     const interview = list.filter((a) => stageIndex(a.stage) >= stageIndex('interview')).length;
     return { track, total: list.length, interview, offer: list.filter((a) => a.stage === 'offer').length };
   }).filter((r) => r.total);
-  const untagged = apps.filter((a) => !a.track && a.stage !== 'wishlist').length;
+  if (!rows.length) return null; // 没选赛道的话整张卡片不出现
   return h('section', { class: 'card' },
     h('div', { class: 'card-head' }, h('h3', null, '赛道对比')),
-    h('div', { class: 'card-body' }, rows.length
-      ? h('table', { class: 'track-table' },
+    h('div', { class: 'card-body' },
+      h('table', { class: 'track-table' },
         h('thead', null, h('tr', null, ['赛道', '已投递', '进入面试', '面试率', 'Offer'].map((t) => h('th', null, t)))),
         h('tbody', null, rows.map((r) => h('tr', null,
           h('td', null, r.track),
           h('td', null, String(r.total)),
           h('td', null, String(r.interview)),
           h('td', null, `${Math.round((r.interview / r.total) * 100)}%`),
-          h('td', null, String(r.offer))))))
-      : h('div', { class: 'empty small' }, '给投递选上「赛道」后，这里会比较产品线和市场线'),
-    untagged ? h('div', { class: 'muted small', style: { marginTop: '8px' } }, `还有 ${untagged} 条投递没选赛道`) : null));
+          h('td', null, String(r.offer))))))));
 }

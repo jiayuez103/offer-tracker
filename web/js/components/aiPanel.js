@@ -2,11 +2,11 @@
 // 所有产出都只是建议，不会自动写回档案。
 import { store } from '../store.js';
 import { api, apiUrl } from '../api.js';
-import { h, icon, toast, copyText, ensureCss } from '../ui.js';
+import { h, icon, toast, copyText, ensureCss, setChildren } from '../ui.js';
 import { formatZoned } from '../../shared/time.js';
 
 const MODES = [['resume', '改简历'], ['interview', '面试准备']];
-const CATS = [['行为', '行为题（追问你的经历）'], ['业务', '业务题（JD 的专业要求）'], ['动机', '动机题'], ['反问', '你该反问什么']];
+const CATS = [['行为', '行为题'], ['业务', '业务题'], ['动机', '动机题'], ['反问', '反问']];
 
 // [文字, 底色, 图标]：三样一起出现，不靠颜色单独表达
 const MATCH = {
@@ -24,7 +24,6 @@ export function aiPane(app, { onNeedJd } = {}) {
   if (!ai.enabled || !ai.baseUrl || !ai.model) {
     root.append(h('div', { class: 'empty' },
       h('div', null, '还没配置 AI 服务'),
-      h('p', { class: 'muted small' }, '去「设置」页填上服务地址和模型名（DeepSeek、本地 Ollama 都行），这里就能按 JD 给改写建议。'),
       h('a', { class: 'btn', href: '#/settings' }, '去设置')));
     return root;
   }
@@ -35,7 +34,7 @@ export function aiPane(app, { onNeedJd } = {}) {
   const body = h('div', { class: 'ai-body' });
   const chatBox = h('div', { class: 'ai-chat' });
   const log = h('div', { class: 'ai-log' });
-  root.append(modeTabs, head, body, chatBox);
+  root.append(head, body, chatBox);
 
   let state = null;
 
@@ -62,19 +61,22 @@ export function aiPane(app, { onNeedJd } = {}) {
     const at = state && (isResume ? state.at : state.interviewAt);
     const done = Boolean(state && (isResume ? state.diagnosis : state.interview));
     const tokens = state && (isResume ? state.tokens : state.interviewTokens);
-    head.replaceChildren(
-      h('span', { class: 'muted small grow' }, done
-        ? `基于 ${formatZoned(at, s.homeTz)} 的 JD · ${state.model || ''}${tokens ? ` · ${tokens} tokens` : ''}`
-        : (isResume ? '还没诊断过这条投递' : '还没生成过面试题')),
-      h('button', { class: 'btn sm', type: 'button', onClick: () => run(true) },
-        icon('refresh'),
-        done ? '重新生成' : (isResume ? '开始诊断' : '生成面试题')));
+    // 生成时间、模型和用量放进悬停提示，不常驻在页面上
+    const meta = done ? `基于 ${formatZoned(at, s.homeTz)} 的 JD · ${state.model || ''}${tokens ? ` · ${tokens} tokens` : ''}` : '';
+    setChildren(head,
+      modeTabs,
+      h('span', { class: 'spacer' }),
+      done ? h('button', { class: 'btn sm', type: 'button', title: meta, onClick: () => run(true) }, icon('refresh'), '重新生成') : null);
   }
+
+  /** 还没生成过：正文只有一个按钮 */
+  const startButton = (label) => h('div', { class: 'empty' },
+    h('button', { class: 'btn primary', type: 'button', onClick: () => run(true) }, label));
 
   function card(r) {
     return h('div', { class: 'ai-rewrite' },
       h('div', { class: 'ai-rewrite-head' },
-        h('b', null, '改写建议'),
+        h('b', null, r.target ? entryName(r.target) : ''),
         h('button', { class: 'btn sm ghost', type: 'button', onClick: () => copyText(r.rewrite, '改写内容已复制') }, icon('copy'), '复制')),
       h('div', { class: 'ai-before' }, r.original || ''),
       h('div', { class: 'ai-after' }, r.rewrite || ''),
@@ -89,15 +91,15 @@ export function aiPane(app, { onNeedJd } = {}) {
       h('div', { class: 'ai-q-head' },
         h('b', null, q.q || ''),
         h('button', { class: 'btn sm ghost', type: 'button', onClick: () => copyText(q.q || '', '问题已复制') }, icon('copy'))),
-      q.why ? h('p', { class: 'muted small' }, `为什么会问：${q.why}`) : null,
-      (q.use || []).length ? h('p', { class: 'small' }, '用这段经历：', ...q.use.map((id) => h('span', { class: 'chip' }, entryName(id)))) : null,
+      q.why ? h('p', { class: 'muted small' }, q.why) : null,
+      (q.use || []).length ? h('div', { class: 'ai-use' }, q.use.map((id) => h('span', { class: 'chip' }, icon('idcard'), entryName(id)))) : null,
       (q.points || []).length ? h('ul', { class: 'ai-points' }, q.points.map((pt) => h('li', null, pt))) : null);
   }
 
   function renderInterview() {
     const iv = state && state.interview;
     if (!iv) {
-      body.replaceChildren(h('p', { class: 'muted small' }, '点右上角「生成面试题」，我会按这条 JD 和你的经历列出最可能被问到的问题，并标出每题该用哪段经历回答。'));
+      body.replaceChildren(startButton('生成面试题'));
       return;
     }
     if (iv.raw) {
@@ -111,7 +113,7 @@ export function aiPane(app, { onNeedJd } = {}) {
         : null;
     });
     const rest = (iv.questions || []).filter((q) => !CATS.some(([key]) => (q.category || '').includes(key)));
-    body.replaceChildren(
+    setChildren(body,
       iv.summary ? h('div', { class: 'ai-summary' }, iv.summary) : null,
       ...groups,
       rest.length ? h('div', { class: 'ai-section' }, h('h4', null, '其它'), ...rest.map(questionCard)) : null);
@@ -120,7 +122,7 @@ export function aiPane(app, { onNeedJd } = {}) {
   function renderBody() {
     if (mode === 'interview') return renderInterview();
     if (!state || !state.diagnosis) {
-      body.replaceChildren(h('p', { class: 'muted small' }, '点右上角「开始诊断」，我会读这条投递的 JD 和你的档案，给出匹配情况和改写建议。'));
+      body.replaceChildren(startButton('按 JD 生成改写建议'));
       return;
     }
     const d = state.diagnosis || {};
@@ -128,7 +130,7 @@ export function aiPane(app, { onNeedJd } = {}) {
       body.replaceChildren(h('div', { class: 'ai-summary' }, d.summary || ''));
       return;
     }
-    body.replaceChildren(
+    setChildren(body,
       d.summary ? h('div', { class: 'ai-summary' }, d.summary) : null,
       d.requirements?.length
         ? h('div', { class: 'ai-section' },
@@ -148,13 +150,12 @@ export function aiPane(app, { onNeedJd } = {}) {
       d.rewrites?.length
         ? h('div', { class: 'ai-section' },
           h('h4', null, '改写建议'),
-          h('p', { class: 'muted small' }, '这些只是建议，不会自动改你的档案。满意就复制到简历里。'),
           ...d.rewrites.map(card))
         : null);
   }
 
   async function run(force) {
-    body.replaceChildren(h('p', { class: 'muted small' }, '正在读 JD 和档案，大概十几秒…'));
+    body.replaceChildren(h('div', { class: 'empty' }, icon('hourglass'), '生成中…'));
     try {
       state = await api.post(mode === 'interview' ? '/api/ai/interview' : '/api/ai/diagnose', { appId: app.id, force });
       renderHead();
@@ -172,8 +173,8 @@ export function aiPane(app, { onNeedJd } = {}) {
     log.scrollTop = log.scrollHeight;
   }
 
-  const box = h('textarea', { class: 'textarea', rows: 2, placeholder: '比如：把某段经历改得更偏渠道，两行以内' });
-  const sendBtn = h('button', { class: 'btn primary', type: 'button' }, '发送');
+  const box = h('textarea', { class: 'textarea', rows: 2, placeholder: '接着问…' });
+  const sendBtn = h('button', { class: 'btn primary', type: 'button', title: '⌘↵' }, '发送');
 
   async function send() {
     const message = box.value.trim();
@@ -231,11 +232,7 @@ export function aiPane(app, { onNeedJd } = {}) {
   box.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send();
   });
-  chatBox.append(
-    h('h4', null, '接着问'),
-    log,
-    h('div', { class: 'ai-input' }, box, sendBtn),
-    h('p', { class: 'muted small' }, '⌘↵ 发送。对话带着这条 JD 和你的档案，但不会自动改档案。'));
+  chatBox.append(log, h('div', { class: 'ai-input' }, box, sendBtn));
 
   renderModes();
   renderHead();

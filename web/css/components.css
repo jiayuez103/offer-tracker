@@ -35,9 +35,7 @@
 .review-head { display: flex; align-items: center; gap: 6px; font-weight: 700; }
 .review-head .muted { color: var(--ink-2); font-size: 12px; font-weight: 400; }
 .tz-preview { padding: 8px 12px; border-radius: var(--radius-sm); background: var(--teal-softer); color: var(--ink); font-weight: 600; }
-.tz-preview.warn { background: var(--warn-soft); }
 .invite-form { display: flex; flex-direction: column; gap: 12px; }
-.invite-form > p { margin: 0; }
 .field > .link { align-self: flex-start; }
 
 /* ---------- JD ---------- */
@@ -61,8 +59,6 @@
 .newapp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; }
 .newapp-jd { display: flex; flex-direction: column; gap: 10px; }
 .newapp-jd .textarea { min-height: 300px; }
-.parse-hint { min-height: 18px; color: var(--ink-3); font-size: 12px; }
-.parse-hint.ok { padding: 6px 12px; border-radius: var(--radius-sm); background: var(--ok-soft); color: var(--ink); font-weight: 600; }
 /* 从 JD 里自动认出来的字段：绿色底，手改之后变回普通底色 */
 .filled { background-color: var(--ok-soft); animation: filled-flash 1.2s var(--ease); }
 @keyframes filled-flash { from { box-shadow: 0 0 0 3px var(--ok); } }

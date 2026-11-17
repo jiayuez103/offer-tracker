@@ -220,14 +220,12 @@ export function actionItems(apps, settings = DEFAULT_SETTINGS, now = new Date())
       // 截止型：邀请往往提前好几天到，所以从录入起就一直提醒，直到勾了完成
       if (!ev.done && eventMode(ev) === 'deadline') {
         const left = at - nowMs;
-        const window = ev.windowStart ? Math.max(1, Math.round((at - Date.parse(ev.windowStart)) / DAY)) : 0;
-        const tail = window ? `（窗口共 ${window} 天）` : '';
         if (left < 0) {
           items.push({ kind: 'overdue', rank: 5, app, event: ev, text: `${ev.type}已过期 ${Math.max(1, Math.round(-left / DAY))} 天` });
         } else if (left <= 48 * HOUR) {
-          items.push({ kind: 'test', rank: 0, app, event: ev, text: `${ev.type}还剩 ${Math.max(1, Math.round(left / HOUR))} 小时${tail}` });
+          items.push({ kind: 'test', rank: 0, app, event: ev, text: `${ev.type}还剩 ${Math.max(1, Math.round(left / HOUR))} 小时` });
         } else {
-          items.push({ kind: 'test', rank: 2, app, event: ev, text: `${ev.type}还剩 ${Math.round(left / DAY)} 天${tail}` });
+          items.push({ kind: 'test', rank: 2, app, event: ev, text: `${ev.type}还剩 ${Math.round(left / DAY)} 天` });
         }
       }
       if (!ev.done && at >= nowMs && MEETING_TYPES.has(ev.type)) {

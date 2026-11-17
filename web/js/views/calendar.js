@@ -1,7 +1,7 @@
 // 日程：按天列出测评、笔试、面试和网申截止（按本地时区分组，右侧显示目标时区时间）；
 // 可以直接勾选完成；右侧是订阅到苹果日历的入口。
 import { store } from '../store.js';
-import { h, icon, ensureCss, openApp, openInvite, attempt, safeUrl, copyText, emptyState, eventChip, deadlineChip } from '../ui.js';
+import { h, icon, ensureCss, openApp, openInvite, attempt, safeUrl, copyText, eventChip, deadlineChip } from '../ui.js';
 import { calendarUrl } from '../api.js';
 import { isClosed } from '../../shared/domain.js';
 import { todayInZone, formatZoned, isoToLocalInput, zonedToISO, deadlineISO, diffDays } from '../../shared/time.js';
@@ -61,19 +61,17 @@ function build(showPast, setShowPast) {
     if (!groups.has(day)) groups.set(day, []);
     groups.get(day).push(r);
   }
-  const toolbar = h('div', { class: 'cal-toolbar strip' },
-    h('label', { class: 'row small' },
-      h('input', { type: 'checkbox', checked: showPast, onChange: (e) => setShowPast(e.target.checked) }),
-      '显示过去 30 天'),
-    h('button', { class: 'btn sm', type: 'button', onClick: openInvite }, icon('mail'), '粘贴邀请'),
-    h('span', { class: 'spacer' }),
-    h('span', { class: 'muted small' }, `按${settings.homeTzLabel}时间分组 · 右侧是${settings.targetTzLabel}时间`));
-  const list = rows.length
-    ? h('section', { class: 'card cal-window' },
-      h('div', { class: 'card-head' }, h('h3', null, '日程'), h('span', { class: 'head-meta' }, '勾选即完成')),
-      h('div', { class: 'cal-list' }, [...groups].map(([day, items]) => dayBlock(day, items, today, settings, now))))
-    : emptyState(showPast ? '最近 30 天和之后都没有日程' : '还没有之后的日程。在投递详情的「日程与复盘」里添加。');
-  return h('div', { class: 'cal' }, h('div', { class: 'cal-main' }, toolbar, list), subscribeCard(settings));
+  // 「过去 30 天」开关放在窗口标题栏右侧，不另起一条工具栏
+  const pastToggle = h('label', { class: 'head-meta head-toggle' },
+    h('input', { type: 'checkbox', checked: showPast, onChange: (e) => setShowPast(e.target.checked) }),
+    '过去 30 天');
+  const list = h('section', { class: 'card cal-window' },
+    h('div', { class: 'card-head' }, h('h3', null, '日程'), pastToggle),
+    rows.length
+      ? h('div', { class: 'cal-list' }, [...groups].map(([day, items]) => dayBlock(day, items, today, settings, now)))
+      : h('div', { class: 'card-body' }, h('div', { class: 'empty' },
+        h('button', { class: 'btn primary', type: 'button', onClick: () => openInvite() }, icon('mail'), '粘贴测评邀请'))));
+  return h('div', { class: 'cal' }, h('div', { class: 'cal-main' }, list), subscribeCard());
 }
 
 function dayBlock(day, items, today, settings, now) {
@@ -124,20 +122,19 @@ function row(r, settings, now) {
       h('input', { type: 'checkbox', checked: !!ev.done, onChange: (e) => toggleDone(r.app.id, ev.id, e.target.checked) })));
 }
 
-function subscribeCard(settings) {
+function subscribeCard() {
   const httpUrl = new URL(calendarUrl(), location.href).href;
   const webcal = httpUrl.replace(/^https?:/, 'webcal:');
   return h('aside', { class: 'card cal-side' },
     h('div', { class: 'card-head' }, h('h3', null, '同步到苹果日历')),
     h('div', { class: 'card-body' },
-      h('p', { class: 'small' }, '订阅以后，新加的日程会自动出现在日历里：面试前 1 小时提醒；测评、笔试这类有截止时间的响两次 —— 提前 1 天，截止当天早上再响一次。'),
       h('div', { class: 'row wrap' },
-        h('a', { class: 'btn primary', href: webcal }, icon('calendar'), '订阅'),
+        h('a', { class: 'btn primary', href: webcal }, icon('calendar'), '订阅到日历'),
         h('a', { class: 'btn', href: httpUrl, download: 'job-tracker.ics' }, icon('download'), '下载 .ics'),
         h('button', { class: 'btn ghost', type: 'button', onClick: () => copyText(httpUrl, '订阅地址已复制') }, icon('copy'), '复制地址')),
-      h('ul', { class: 'small muted cal-tips' },
-        h('li', null, '订阅时把「移除：提醒」取消勾选，不然日历不会提醒。'),
-        h('li', null, '「自动刷新」选每 15 分钟或每小时。Tracker 没启动时日历只是暂停更新，不会丢数据。'),
-        h('li', null, '手机上收不到：订阅地址是本机地址，iPhone 连不上。要让手机也提醒，点「下载 .ics」，把文件用邮件发给自己，在 iPhone 上打开并加进 iCloud 日历（之后有新日程要再发一次）。'),
-        h('li', null, `日历按本机时区显示（现在是${settings.homeTzLabel}）。`))));
+      // 只留订阅时容易做错、页面上又看不出来的三件事
+      h('ul', { class: 'small cal-tips' },
+        h('li', null, '订阅时取消勾选「移除：提醒」'),
+        h('li', null, '「自动刷新」选每 15 分钟'),
+        h('li', null, 'iPhone：下载 .ics，发给自己后在手机上打开'))));
 }
