@@ -5218,7 +5218,7 @@ const SECTIONS = [
   {
     key: 'basic', title: '基本信息',
     fields: [
-      f.bi('name', '姓名'), f.text('preferredName', '英文名 / 常用名', { placeholder: '如：Jasmine' }),
+      f.bi('name', '姓名'), f.text('preferredName', '英文名 / 常用名', { placeholder: '如：Alex' }),
       f.bi('familyName', '姓'), f.bi('givenName', '名'),
       f.select('gender', '性别', ['女', '男']), f.date('birthDate', '出生日期'),
       f.text('phoneCountryCode', '手机区号', { placeholder: '+86' }), f.text('phone', '手机号'),
